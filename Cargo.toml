@@ -1,0 +1,12 @@
+[package]
+name = "bevy_jam_3"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bevy = "0.10.1"
+bevy-tnua = { version = "0.2.1", features = ["rapier_3d"] }
+bevy_rapier3d = { version = "0.21.0", features = ["debug-render-3d"] }
+bevy_dolly = { git = "https://github.com/BlackPhlox/bevy_dolly" }
