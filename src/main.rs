@@ -1,6 +1,4 @@
-//! A simple 3D scene with light shining over a cube sitting on a plane.
-
-use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
+use bevy::{core_pipeline::clear_color::ClearColorConfig, ecs::system::Spawn, prelude::*};
 use bevy_dolly::prelude::*;
 use bevy_rapier3d::prelude::*;
 use bevy_tnua::{
@@ -8,7 +6,7 @@ use bevy_tnua::{
     TnuaPlatformerControls, TnuaPlatformerPlugin, TnuaRapier3dPlugin,
 };
 use loading::LoadingPlugin;
-use map::{map_to_world, Floor, FloorMaterials, MapPlugin};
+use map::{map_to_world, Floor, FloorMaterials, Lava, MapPlugin, TilePos};
 use starfield::StarfieldPlugin;
 
 mod loading;
@@ -24,12 +22,20 @@ struct MainCamera;
 #[derive(Component)]
 struct Cursor;
 
+#[derive(Component)]
+struct TileProbe;
+
+#[derive(Component)]
+struct LastTile(UVec2);
+
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 enum GameState {
     #[default]
     Loading,
     Playing,
 }
+
+struct SpawnPlayerEvent(UVec2);
 
 const CAMERA_OFFSET: Vec3 = Vec3::new(0., 10., 6.);
 const START_TILE: UVec2 = UVec2::new(10, 9);
@@ -38,10 +44,14 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_state::<GameState>()
-        .add_startup_system(spawn_player)
+        .add_event::<SpawnPlayerEvent>()
+        .add_startup_system(setup)
         .add_system(apply_controls)
         .add_system(update_camera)
         .add_system(cursor)
+        .add_system(spawn_player)
+        .add_system(track_last_tile)
+        .add_system(lava)
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugin(RapierDebugRenderPlugin::default())
         .add_plugin(TnuaPlatformerPlugin)
@@ -53,65 +63,8 @@ fn main() {
         .run();
 }
 
-/// set up a simple 3D scene
-fn spawn_player(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    commands
-        .spawn((
-            Player,
-            SpatialBundle {
-                transform: Transform::from_translation(map_to_world(START_TILE) + Vec3::Y * 0.5),
-                ..default()
-            },
-            RigidBody::Dynamic,
-            Velocity::default(),
-            Collider::capsule_y(0.5, 0.5),
-            TnuaPlatformerBundle::new_with_config(TnuaPlatformerConfig {
-                full_speed: 6.0,
-                full_jump_height: 2.0,
-                up: Vec3::Y,
-                forward: -Vec3::Z,
-                float_height: 1.0,
-                cling_distance: 1.0,
-                spring_strengh: 400.0,
-                spring_dampening: 1.2,
-                acceleration: 50.0,
-                air_acceleration: 10.0,
-                coyote_time: 0.15,
-                jump_start_extra_gravity: 30.0,
-                jump_fall_extra_gravity: 20.0,
-                jump_shorten_extra_gravity: 40.0,
-                free_fall_behavior: TnuaFreeFallBehavior::LikeJumpShorten,
-                tilt_offset_angvel: 5.0,
-                tilt_offset_angacl: 500.0,
-                turning_angvel: 5.0,
-            }),
-        ))
-        .with_children(|parent| {
-            parent.spawn(PbrBundle {
-                mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-                material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-                transform: Transform::from_xyz(0.0, -0.5, 0.0),
-                ..default()
-            });
-
-            // cursor
-            parent.spawn((
-                Cursor,
-                PbrBundle {
-                    mesh: meshes.add(Mesh::from(shape::Cube { size: 0.1 })),
-                    material: materials.add(Color::rgb(0.8, 0.0, 0.0).into()),
-                    transform: Transform::from_xyz(0.0, -0.9, -1.5),
-                    ..default()
-                },
-                Collider::segment(Vec3::new(0.0, 0., 0.), Vec3::new(0.0, -1.0, 0.)),
-                Sensor,
-                ActiveEvents::COLLISION_EVENTS,
-            ));
-        });
+fn setup(mut commands: Commands, mut spawn_player_events: EventWriter<SpawnPlayerEvent>) {
+    spawn_player_events.send(SpawnPlayerEvent(START_TILE));
 
     // light
     commands.spawn(DirectionalLightBundle {
@@ -179,9 +132,17 @@ fn apply_controls(keyboard: Res<Input<KeyCode>>, mut query: Query<&mut TnuaPlatf
     }
 }
 
-fn update_camera(q0: Query<(&Transform, With<Player>)>, mut q1: Query<&mut Rig>) {
-    let player = q0.single().0.to_owned();
-    let mut rig = q1.single_mut();
+fn update_camera(player_query: Query<&Transform, With<Player>>, mut rig_query: Query<&mut Rig>) {
+    let count = player_query.iter().len();
+
+    let Ok(player) = player_query.get_single() else {
+        info!("player count: {}", count);
+        return;
+    };
+
+    let Ok(mut rig) = rig_query.get_single_mut() else {
+        return;
+    };
 
     rig.driver_mut::<Position>().position = player.translation;
     // rig.driver_mut::<Rotation>().rotation = player.rotation;
@@ -198,13 +159,12 @@ fn cursor(
         match evt {
             CollisionEvent::Started(e1, e2, _) => {
                 let is_cursor = cursor_query.iter_many([e1, e2]).count() > 0;
-                if !is_cursor {
-                    continue;
-                }
 
-                let mut iter = floor_query.iter_many_mut([e1, e2]);
-                while let Some(mut floor_material) = iter.fetch_next() {
-                    *floor_material = floor_materials.highlighted.clone();
+                if is_cursor {
+                    let mut iter = floor_query.iter_many_mut([e1, e2]);
+                    while let Some(mut floor_material) = iter.fetch_next() {
+                        *floor_material = floor_materials.highlighted.clone();
+                    }
                 }
             }
             CollisionEvent::Stopped(e1, e2, _) => {
@@ -219,5 +179,136 @@ fn cursor(
                 }
             }
         }
+    }
+}
+
+fn track_last_tile(
+    mut collision_events: EventReader<CollisionEvent>,
+    probe_query: Query<&Parent, With<TileProbe>>,
+    floor_query: Query<&TilePos, With<Floor>>,
+    mut last_tile_query: Query<&mut LastTile>,
+) {
+    for evt in collision_events.iter() {
+        match evt {
+            CollisionEvent::Started(e1, e2, _) => {
+                let is_probe = probe_query.iter_many([e1, e2]).count() > 0;
+                let is_floor = floor_query.iter_many([e1, e2]).count() > 0;
+
+                if is_probe && is_floor {
+                    for parent in probe_query.iter_many([e1, e2]) {
+                        if let Ok(mut last_tile) = last_tile_query.get_mut(**parent) {
+                            for tile_pos in floor_query.iter_many([e1, e2]) {
+                                last_tile.0 = tile_pos.0;
+                                info!("last tile is {:?}", tile_pos.0);
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+fn lava(
+    mut commands: Commands,
+    mut collision_events: EventReader<CollisionEvent>,
+    lava_query: Query<&Lava>,
+    player_query: Query<&LastTile, With<Player>>,
+    mut spawn_player_events: EventWriter<SpawnPlayerEvent>,
+) {
+    for evt in collision_events.iter() {
+        match evt {
+            CollisionEvent::Started(e1, e2, _) => {
+                let is_lava = lava_query.iter_many([e1, e2]).count() > 0;
+                let is_player = player_query.iter_many([e1, e2]).count() > 0;
+
+                if is_lava && is_player {
+                    if let Ok(last_tile) = player_query.get(*e1) {
+                        commands.entity(*e1).despawn_recursive();
+                        spawn_player_events.send(SpawnPlayerEvent(last_tile.0));
+                    }
+                    if let Ok(last_tile) = player_query.get(*e2) {
+                        commands.entity(*e2).despawn_recursive();
+                        spawn_player_events.send(SpawnPlayerEvent(last_tile.0));
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+fn spawn_player(
+    mut commands: Commands,
+    mut events: EventReader<SpawnPlayerEvent>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    for event in events.iter() {
+        commands
+            .spawn((
+                Player,
+                SpatialBundle {
+                    transform: Transform::from_translation(map_to_world(event.0) + Vec3::Y * 0.5),
+                    ..default()
+                },
+                RigidBody::Dynamic,
+                Velocity::default(),
+                Collider::capsule_y(0.5, 0.5),
+                ActiveEvents::COLLISION_EVENTS,
+                LastTile(event.0),
+                TnuaPlatformerBundle::new_with_config(TnuaPlatformerConfig {
+                    full_speed: 6.0,
+                    full_jump_height: 2.0,
+                    up: Vec3::Y,
+                    forward: -Vec3::Z,
+                    float_height: 1.0,
+                    cling_distance: 1.0,
+                    spring_strengh: 400.0,
+                    spring_dampening: 1.2,
+                    acceleration: 50.0,
+                    air_acceleration: 10.0,
+                    coyote_time: 0.15,
+                    jump_start_extra_gravity: 30.0,
+                    jump_fall_extra_gravity: 20.0,
+                    jump_shorten_extra_gravity: 40.0,
+                    free_fall_behavior: TnuaFreeFallBehavior::LikeJumpShorten,
+                    tilt_offset_angvel: 5.0,
+                    tilt_offset_angacl: 500.0,
+                    turning_angvel: 5.0,
+                }),
+            ))
+            .with_children(|parent| {
+                parent.spawn(PbrBundle {
+                    mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+                    material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+                    transform: Transform::from_xyz(0.0, -0.5, 0.0),
+                    ..default()
+                });
+
+                // probe for current tile
+                parent.spawn((
+                    TileProbe,
+                    SpatialBundle::default(),
+                    Collider::segment(Vec3::new(0., 0., 0.), Vec3::new(0.0, -2.0, 0.)),
+                    Sensor,
+                    ActiveEvents::COLLISION_EVENTS,
+                ));
+
+                // cursor
+                parent.spawn((
+                    Cursor,
+                    PbrBundle {
+                        mesh: meshes.add(Mesh::from(shape::Cube { size: 0.1 })),
+                        material: materials.add(Color::rgb(0.8, 0.0, 0.0).into()),
+                        transform: Transform::from_xyz(0.0, -0.9, -1.5),
+                        ..default()
+                    },
+                    Collider::segment(Vec3::new(0.0, 0., 0.), Vec3::new(0.0, -1.0, 0.)),
+                    Sensor,
+                    ActiveEvents::COLLISION_EVENTS,
+                ));
+            });
     }
 }

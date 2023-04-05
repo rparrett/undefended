@@ -23,9 +23,16 @@ const MAP: [[i32; 13]; 13] = [
 const MAP_ROWS: usize = MAP.len();
 const MAP_COLS: usize = MAP[0].len();
 const TILE_SIZE: Vec3 = Vec3::new(2., 0.5, 2.);
+const LAVA_DEPTH: f32 = -20.;
 
 #[derive(Component)]
 pub struct Floor;
+
+#[derive(Component)]
+pub struct TilePos(pub UVec2);
+
+#[derive(Component)]
+pub struct Lava;
 
 #[derive(Resource)]
 pub struct FloorMaterials {
@@ -74,20 +81,28 @@ fn spawn_map(
     for (row, row_val) in MAP.iter().enumerate() {
         for (col, col_val) in row_val.iter().enumerate() {
             if *col_val == 1 {
+                let pos = UVec2::new(col as u32, row as u32);
+
                 commands.spawn((
                     Floor,
                     PbrBundle {
-                        transform: Transform::from_translation(
-                            map_to_world(UVec2::new(col as u32, row as u32)) + Vec3::Y * -0.5,
-                        ),
+                        transform: Transform::from_translation(map_to_world(pos) + Vec3::Y * -0.5),
                         mesh: tile_mesh.clone(),
                         material: floor_materials.normal.clone(),
                         ..default()
                     },
+                    TilePos(pos),
                     Collider::cuboid(TILE_SIZE.x / 2., TILE_SIZE.y / 2., TILE_SIZE.x / 2.),
                     ActiveEvents::COLLISION_EVENTS,
                 ));
             }
         }
     }
+
+    commands.spawn((
+        Lava,
+        SpatialBundle::from_transform(Transform::from_translation(Vec3::new(0., LAVA_DEPTH, 0.))),
+        Collider::halfspace(Vec3::Y).unwrap(),
+        Sensor,
+    ));
 }

@@ -55,10 +55,10 @@ fn move_starfield(
     query: Query<&Transform, With<Player>>,
     mut materials: ResMut<Assets<StarfieldMaterial>>,
 ) {
-    let player = query.single();
-
-    for mat in materials.iter_mut() {
-        mat.1.pos = Vec2::new(player.translation.x, player.translation.z);
+    for player in query.iter() {
+        for mat in materials.iter_mut() {
+            mat.1.pos = Vec2::new(player.translation.x, player.translation.z);
+        }
     }
 }
 
