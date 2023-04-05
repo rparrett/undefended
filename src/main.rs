@@ -3,7 +3,7 @@ use bevy_dolly::prelude::*;
 use bevy_rapier3d::prelude::*;
 use bevy_tnua::{
     TnuaAnimatingState, TnuaFreeFallBehavior, TnuaPlatformerBundle, TnuaPlatformerConfig,
-    TnuaPlatformerControls, TnuaPlatformerPlugin, TnuaRapier3dPlugin,
+    TnuaPlatformerControls, TnuaPlatformerPlugin, TnuaRapier3dPlugin, TnuaRapier3dSensorShape,
 };
 use loading::LoadingPlugin;
 use map::{map_to_world, Floor, FloorMaterials, Lava, MapPlugin, MovingFloor, TilePos};
@@ -257,13 +257,14 @@ fn spawn_player(
                 Collider::capsule_y(0.5, 0.5),
                 ActiveEvents::COLLISION_EVENTS,
                 LastTile(event.0),
+                TnuaRapier3dSensorShape(Collider::cylinder(0.0, 0.49)),
                 TnuaPlatformerBundle::new_with_config(TnuaPlatformerConfig {
                     full_speed: 6.0,
                     full_jump_height: 2.0,
                     up: Vec3::Y,
                     forward: -Vec3::Z,
                     float_height: 1.0,
-                    cling_distance: 1.0,
+                    cling_distance: 0.5,
                     spring_strengh: 400.0,
                     spring_dampening: 1.2,
                     acceleration: 50.0,
