@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
@@ -15,8 +17,8 @@ const MAP: [[i32; 13]; 13] = [
     [0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0],
-    [0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0, 0, 2, 1, 1, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 ];
@@ -33,6 +35,54 @@ pub struct TilePos(pub UVec2);
 
 #[derive(Component)]
 pub struct Lava;
+
+#[derive(Component)]
+pub struct MovingFloor {
+    waypoints: Vec<UVec2>,
+    index: usize,
+    speed: f32,
+    dwell_timer: Timer,
+    state: MovingFloorState,
+    direction: MovingFloorDirection,
+}
+impl MovingFloor {
+    fn next_waypoint(&self) -> Option<UVec2> {
+        let index = self.next_waypoint_index()?;
+
+        self.waypoints.get(index).copied()
+    }
+
+    fn next_waypoint_index(&self) -> Option<usize> {
+        match self.direction {
+            MovingFloorDirection::Forward => {
+                self.waypoints.get(self.index + 1).and(Some(self.index + 1))
+            }
+            MovingFloorDirection::Backward => self.index.checked_sub(1),
+        }
+    }
+
+    fn advance(&mut self) {
+        if let Some(index) = self.next_waypoint_index() {
+            self.index = index;
+        }
+    }
+}
+enum MovingFloorState {
+    Dwell,
+    Move,
+}
+enum MovingFloorDirection {
+    Forward,
+    Backward,
+}
+impl MovingFloorDirection {
+    fn toggle(&mut self) {
+        *self = match self {
+            Self::Forward => Self::Backward,
+            Self::Backward => Self::Forward,
+        }
+    }
+}
 
 #[derive(Resource)]
 pub struct FloorMaterials {
@@ -59,7 +109,8 @@ impl FromWorld for FloorMaterials {
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<FloorMaterials>()
-            .add_system(spawn_map.in_schedule(OnEnter(GameState::Playing)));
+            .add_system(spawn_map.in_schedule(OnEnter(GameState::Playing)))
+            .add_system(moving_floor.in_set(OnUpdate(GameState::Playing)));
     }
 }
 
@@ -83,7 +134,7 @@ fn spawn_map(
             if *col_val == 1 {
                 let pos = UVec2::new(col as u32, row as u32);
 
-                commands.spawn((
+                let mut cmds = commands.spawn((
                     Floor,
                     PbrBundle {
                         transform: Transform::from_translation(map_to_world(pos) + Vec3::Y * -0.5),
@@ -95,6 +146,19 @@ fn spawn_map(
                     Collider::cuboid(TILE_SIZE.x / 2., TILE_SIZE.y / 2., TILE_SIZE.x / 2.),
                     ActiveEvents::COLLISION_EVENTS,
                 ));
+
+                if col == 3 && row == 10 {
+                    cmds.insert(MovingFloor {
+                        waypoints: vec![UVec2::new(3, 10), UVec2::new(8, 10)],
+                        index: 0,
+                        speed: 5.,
+                        state: MovingFloorState::Dwell,
+                        direction: MovingFloorDirection::Forward,
+                        dwell_timer: Timer::new(Duration::from_secs_f32(1.), TimerMode::Once),
+                    });
+                    cmds.insert(RigidBody::KinematicVelocityBased);
+                    cmds.insert(Velocity::default());
+                }
             }
         }
     }
@@ -105,4 +169,40 @@ fn spawn_map(
         Collider::halfspace(Vec3::Y).unwrap(),
         Sensor,
     ));
+}
+
+fn moving_floor(
+    mut query: Query<(&mut Velocity, &Transform, &mut MovingFloor), With<MovingFloor>>,
+    time: Res<Time>,
+) {
+    for (mut velocity, transform, mut floor) in query.iter_mut() {
+        match floor.state {
+            MovingFloorState::Dwell => {
+                floor.dwell_timer.tick(time.delta());
+                if floor.dwell_timer.just_finished() {
+                    floor.state = MovingFloorState::Move;
+                    floor.dwell_timer.reset();
+                }
+            }
+            MovingFloorState::Move => {
+                if let Some(next_waypoint) = floor.next_waypoint() {
+                    let world = map_to_world(next_waypoint) + Vec3::Y * -0.5;
+                    let delta = world - transform.translation;
+                    let dist = delta.length();
+
+                    // TODO acceleration
+                    if dist > 0.01 {
+                        velocity.linvel = delta.normalize_or_zero() * floor.speed;
+                    } else {
+                        velocity.linvel = Vec3::ZERO;
+                        floor.advance();
+                    }
+                } else {
+                    floor.state = MovingFloorState::Dwell;
+                    velocity.linvel = Vec3::ZERO;
+                    floor.direction.toggle();
+                }
+            }
+        }
+    }
 }
