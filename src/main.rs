@@ -1,12 +1,19 @@
 //! A simple 3D scene with light shining over a cube sitting on a plane.
 
-use bevy::prelude::*;
+use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
 use bevy_dolly::prelude::*;
 use bevy_rapier3d::prelude::*;
 use bevy_tnua::{
     TnuaAnimatingState, TnuaFreeFallBehavior, TnuaPlatformerBundle, TnuaPlatformerConfig,
     TnuaPlatformerControls, TnuaPlatformerPlugin, TnuaRapier3dPlugin,
 };
+use loading::LoadingPlugin;
+use map::{map_to_world, Floor, FloorMaterials, MapPlugin};
+use starfield::StarfieldPlugin;
+
+mod loading;
+mod map;
+mod starfield;
 
 #[derive(Component)]
 struct Player;
@@ -17,38 +24,21 @@ struct MainCamera;
 #[derive(Component)]
 struct Cursor;
 
-#[derive(Component)]
-struct Floor;
-
-const OFFSET: Vec3 = Vec3::new(0., 10., 6.);
-
-#[derive(Resource)]
-struct FloorMaterials {
-    normal: Handle<StandardMaterial>,
-    highlighted: Handle<StandardMaterial>,
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+enum GameState {
+    #[default]
+    Loading,
+    Playing,
 }
-impl FromWorld for FloorMaterials {
-    fn from_world(world: &mut World) -> Self {
-        let mut materials = world.resource_mut::<Assets<StandardMaterial>>();
 
-        Self {
-            normal: materials.add(StandardMaterial {
-                base_color: Color::rgb(0.3, 0.5, 0.3),
-                ..default()
-            }),
-            highlighted: materials.add(StandardMaterial {
-                base_color: Color::rgb(0.5, 0.7, 0.5),
-                ..default()
-            }),
-        }
-    }
-}
+const CAMERA_OFFSET: Vec3 = Vec3::new(0., 10., 6.);
+const START_TILE: UVec2 = UVec2::new(10, 9);
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_state::<GameState>()
         .add_startup_system(spawn_player)
-        .add_startup_system(spawn_level)
         .add_system(apply_controls)
         .add_system(update_camera)
         .add_system(cursor)
@@ -56,61 +46,11 @@ fn main() {
         .add_plugin(RapierDebugRenderPlugin::default())
         .add_plugin(TnuaPlatformerPlugin)
         .add_plugin(TnuaRapier3dPlugin)
+        .add_plugin(LoadingPlugin)
+        .add_plugin(StarfieldPlugin)
+        .add_plugin(MapPlugin)
         .add_system(Dolly::<MainCamera>::update_active)
-        .init_resource::<FloorMaterials>()
         .run();
-}
-
-fn spawn_level(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    floor_materials: Res<FloorMaterials>,
-) {
-    // plane
-
-    let tile_size = Vec3::new(2., 0.5, 2.);
-
-    let map = vec![
-        vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        vec![1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
-        vec![1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1],
-        vec![1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1],
-        vec![1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1],
-        vec![1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1],
-        vec![1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1],
-        vec![1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1],
-        vec![1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-        vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    ];
-    let rows = map.len();
-    let cols = map[0].len();
-
-    let tile_mesh = meshes.add(shape::Box::new(tile_size.x, tile_size.y, tile_size.x).into());
-
-    for (row, row_val) in map.iter().enumerate() {
-        for (col, col_val) in row_val.iter().enumerate() {
-            if *col_val == 1 {
-                commands.spawn((
-                    Floor,
-                    PbrBundle {
-                        transform: Transform::from_xyz(
-                            (rows as i32 / -2 + row as i32) as f32 * tile_size.x,
-                            -0.5,
-                            (cols as i32 / -2 + col as i32) as f32 * tile_size.z,
-                        ),
-                        mesh: tile_mesh.clone(),
-                        material: floor_materials.normal.clone(),
-                        ..default()
-                    },
-                    Collider::cuboid(tile_size.x / 2., tile_size.y / 2., tile_size.x / 2.),
-                    ActiveEvents::COLLISION_EVENTS,
-                ));
-            }
-        }
-    }
 }
 
 /// set up a simple 3D scene
@@ -123,23 +63,23 @@ fn spawn_player(
         .spawn((
             Player,
             SpatialBundle {
-                transform: Transform::from_translation(Vec3::new(0., 0.5, 0.)),
+                transform: Transform::from_translation(map_to_world(START_TILE) + Vec3::Y * 0.5),
                 ..default()
             },
             RigidBody::Dynamic,
             Velocity::default(),
             Collider::capsule_y(0.5, 0.5),
             TnuaPlatformerBundle::new_with_config(TnuaPlatformerConfig {
-                full_speed: 10.0,
-                full_jump_height: 4.0,
+                full_speed: 6.0,
+                full_jump_height: 2.0,
                 up: Vec3::Y,
                 forward: -Vec3::Z,
                 float_height: 1.0,
                 cling_distance: 1.0,
                 spring_strengh: 400.0,
                 spring_dampening: 1.2,
-                acceleration: 60.0,
-                air_acceleration: 20.0,
+                acceleration: 50.0,
+                air_acceleration: 10.0,
                 coyote_time: 0.15,
                 jump_start_extra_gravity: 30.0,
                 jump_fall_extra_gravity: 20.0,
@@ -191,14 +131,18 @@ fn spawn_player(
             //.with(Rotation::new(Quat::IDENTITY))
             //.with(Smooth::new_position(1.25).predictive(true))
             .with(Smooth::new_position(0.25))
-            .with(Arm::new(OFFSET))
+            .with(Arm::new(CAMERA_OFFSET))
             .with(Smooth::new_position(0.25))
             .with(
                 LookAt::new(Vec3::ZERO + Vec3::Y).tracking_smoothness(0.25), //.tracking_predictive(true),
             )
             .build(),
         Camera3dBundle {
-            transform: Transform::from_translation(OFFSET).looking_at(Vec3::ZERO, Vec3::Y),
+            transform: Transform::from_translation(CAMERA_OFFSET).looking_at(Vec3::ZERO, Vec3::Y),
+            camera_3d: Camera3d {
+                clear_color: ClearColorConfig::None,
+                ..default()
+            },
             ..default()
         },
     ));
