@@ -6,7 +6,7 @@ use bevy_tnua::{
     TnuaPlatformerControls, TnuaPlatformerPlugin, TnuaRapier3dPlugin,
 };
 use loading::LoadingPlugin;
-use map::{map_to_world, Floor, FloorMaterials, Lava, MapPlugin, TilePos};
+use map::{map_to_world, Floor, FloorMaterials, Lava, MapPlugin, MovingFloor, TilePos};
 use starfield::StarfieldPlugin;
 
 mod loading;
@@ -185,7 +185,7 @@ fn cursor(
 fn track_last_tile(
     mut collision_events: EventReader<CollisionEvent>,
     probe_query: Query<&Parent, With<TileProbe>>,
-    floor_query: Query<&TilePos, With<Floor>>,
+    floor_query: Query<&TilePos, (With<Floor>, Without<MovingFloor>)>,
     mut last_tile_query: Query<&mut LastTile>,
 ) {
     for evt in collision_events.iter() {
@@ -199,7 +199,6 @@ fn track_last_tile(
                         if let Ok(mut last_tile) = last_tile_query.get_mut(**parent) {
                             for tile_pos in floor_query.iter_many([e1, e2]) {
                                 last_tile.0 = tile_pos.0;
-                                info!("last tile is {:?}", tile_pos.0);
                             }
                         }
                     }
