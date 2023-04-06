@@ -1,5 +1,7 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
 use bevy_dolly::prelude::*;
+#[cfg(feature = "inspector")]
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
 use bevy_tnua::{
     TnuaFreeFallBehavior, TnuaPlatformerBundle, TnuaPlatformerConfig, TnuaPlatformerControls,
@@ -45,9 +47,16 @@ const CAMERA_OFFSET: Vec3 = Vec3::new(0., 10., 6.);
 const START_TILE: UVec2 = UVec2::new(10, 9);
 
 fn main() {
-    App::new()
-        .add_plugins(DefaultPlugins)
-        .add_state::<GameState>()
+    let mut app = App::new();
+
+    app.add_plugins(DefaultPlugins);
+
+    #[cfg(feature = "inspector")]
+    {
+        app.add_plugin(WorldInspectorPlugin::new());
+    }
+
+    app.add_state::<GameState>()
         .add_event::<SpawnPlayerEvent>()
         .add_system(setup.in_schedule(OnEnter(GameState::Playing)))
         .add_system(apply_controls.in_set(OnUpdate(GameState::Playing)))
