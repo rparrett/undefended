@@ -1,7 +1,4 @@
-use std::{
-    f32::consts::{FRAC_PI_2, FRAC_PI_4, PI},
-    time::Duration,
-};
+use std::{f32::consts::FRAC_PI_2, time::Duration};
 
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
@@ -88,42 +85,19 @@ impl MovingFloorDirection {
     }
 }
 
-#[derive(Resource)]
-pub struct FloorMaterials {
-    pub normal: Handle<StandardMaterial>,
-    pub highlighted: Handle<StandardMaterial>,
-}
-impl FromWorld for FloorMaterials {
-    fn from_world(world: &mut World) -> Self {
-        let mut materials = world.resource_mut::<Assets<StandardMaterial>>();
-
-        Self {
-            normal: materials.add(StandardMaterial {
-                base_color: Color::rgb(0.5, 0.5, 0.5),
-                ..default()
-            }),
-            highlighted: materials.add(StandardMaterial {
-                base_color: Color::rgb(0.7, 0.7, 0.7),
-                ..default()
-            }),
-        }
-    }
-}
-
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<FloorMaterials>()
-            .add_system(spawn_map.in_schedule(OnEnter(GameState::Playing)))
+        app.add_system(spawn_map.in_schedule(OnEnter(GameState::Playing)))
             .add_system(moving_floor.in_set(OnUpdate(GameState::Playing)));
     }
 }
 
 pub fn map_to_world(pos: UVec2) -> Vec3 {
-    return Vec3::new(
+    Vec3::new(
         (MAP_COLS as i32 / -2 + pos.x as i32) as f32 * TILE_SIZE.x,
         0.,
         (MAP_ROWS as i32 / -2 + pos.y as i32) as f32 * TILE_SIZE.z,
-    );
+    )
 }
 
 fn spawn_map(mut commands: Commands, models: Res<Models>) {

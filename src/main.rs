@@ -1,12 +1,12 @@
-use bevy::{core_pipeline::clear_color::ClearColorConfig, ecs::system::Spawn, prelude::*};
+use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
 use bevy_dolly::prelude::*;
 use bevy_rapier3d::prelude::*;
 use bevy_tnua::{
-    TnuaAnimatingState, TnuaFreeFallBehavior, TnuaPlatformerBundle, TnuaPlatformerConfig,
-    TnuaPlatformerControls, TnuaPlatformerPlugin, TnuaRapier3dPlugin, TnuaRapier3dSensorShape,
+    TnuaFreeFallBehavior, TnuaPlatformerBundle, TnuaPlatformerConfig, TnuaPlatformerControls,
+    TnuaPlatformerPlugin, TnuaRapier3dPlugin, TnuaRapier3dSensorShape,
 };
 use loading::{LoadingPlugin, Models};
-use map::{map_to_world, Floor, FloorMaterials, Lava, MapPlugin, MovingFloor, TilePos};
+use map::{map_to_world, Floor, Lava, MapPlugin, MovingFloor, TilePos};
 use starfield::StarfieldPlugin;
 
 mod loading;
@@ -132,7 +132,7 @@ fn apply_controls(keyboard: Res<Input<KeyCode>>, mut query: Query<&mut TnuaPlatf
         *controls = TnuaPlatformerControls {
             desired_velocity: if turn_in_place { Vec3::ZERO } else { direction },
             desired_forward: direction.normalize(),
-            jump: jump.then(|| 1.0),
+            jump: jump.then_some(1.0),
         };
     }
 }
@@ -195,22 +195,19 @@ fn track_last_tile(
     mut last_tile_query: Query<&mut LastTile>,
 ) {
     for evt in collision_events.iter() {
-        match evt {
-            CollisionEvent::Started(e1, e2, _) => {
-                let is_probe = probe_query.iter_many([e1, e2]).count() > 0;
-                let is_floor = floor_query.iter_many([e1, e2]).count() > 0;
+        if let CollisionEvent::Started(e1, e2, _) = evt {
+            let is_probe = probe_query.iter_many([e1, e2]).count() > 0;
+            let is_floor = floor_query.iter_many([e1, e2]).count() > 0;
 
-                if is_probe && is_floor {
-                    for parent in probe_query.iter_many([e1, e2]) {
-                        if let Ok(mut last_tile) = last_tile_query.get_mut(**parent) {
-                            for tile_pos in floor_query.iter_many([e1, e2]) {
-                                last_tile.0 = tile_pos.0;
-                            }
+            if is_probe && is_floor {
+                for parent in probe_query.iter_many([e1, e2]) {
+                    if let Ok(mut last_tile) = last_tile_query.get_mut(**parent) {
+                        for tile_pos in floor_query.iter_many([e1, e2]) {
+                            last_tile.0 = tile_pos.0;
                         }
                     }
                 }
             }
-            _ => {}
         }
     }
 }
@@ -223,23 +220,20 @@ fn lava(
     mut spawn_player_events: EventWriter<SpawnPlayerEvent>,
 ) {
     for evt in collision_events.iter() {
-        match evt {
-            CollisionEvent::Started(e1, e2, _) => {
-                let is_lava = lava_query.iter_many([e1, e2]).count() > 0;
-                let is_player = player_query.iter_many([e1, e2]).count() > 0;
+        if let CollisionEvent::Started(e1, e2, _) = evt {
+            let is_lava = lava_query.iter_many([e1, e2]).count() > 0;
+            let is_player = player_query.iter_many([e1, e2]).count() > 0;
 
-                if is_lava && is_player {
-                    if let Ok(last_tile) = player_query.get(*e1) {
-                        commands.entity(*e1).despawn_recursive();
-                        spawn_player_events.send(SpawnPlayerEvent(last_tile.0));
-                    }
-                    if let Ok(last_tile) = player_query.get(*e2) {
-                        commands.entity(*e2).despawn_recursive();
-                        spawn_player_events.send(SpawnPlayerEvent(last_tile.0));
-                    }
+            if is_lava && is_player {
+                if let Ok(last_tile) = player_query.get(*e1) {
+                    commands.entity(*e1).despawn_recursive();
+                    spawn_player_events.send(SpawnPlayerEvent(last_tile.0));
+                }
+                if let Ok(last_tile) = player_query.get(*e2) {
+                    commands.entity(*e2).despawn_recursive();
+                    spawn_player_events.send(SpawnPlayerEvent(last_tile.0));
                 }
             }
-            _ => {}
         }
     }
 }
