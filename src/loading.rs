@@ -19,6 +19,8 @@ pub struct Models {
     pub tower_base: Handle<Scene>,
     #[asset(path = "models/towerheadsm.glb#Scene0")]
     pub tower_head: Handle<Scene>,
+    #[asset(path = "models/enemy1.glb#Scene0")]
+    pub enemy1: Handle<Scene>,
     #[asset(path = "models/player.glb#Scene0")]
     pub player: Handle<Scene>,
 }

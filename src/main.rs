@@ -7,10 +7,12 @@ use bevy_tnua::{
     TnuaFreeFallBehavior, TnuaPlatformerBundle, TnuaPlatformerConfig, TnuaPlatformerControls,
     TnuaPlatformerPlugin, TnuaRapier3dPlugin, TnuaRapier3dSensorShape,
 };
+use enemy::EnemyPlugin;
 use loading::{LoadingPlugin, Models};
 use map::{map_to_world, Floor, Lava, MapPlugin, MovingFloor, TilePos};
 use starfield::StarfieldPlugin;
 
+mod enemy;
 mod loading;
 mod map;
 mod starfield;
@@ -73,6 +75,7 @@ fn main() {
         .add_plugin(LoadingPlugin)
         .add_plugin(StarfieldPlugin)
         .add_plugin(MapPlugin)
+        .add_plugin(EnemyPlugin)
         .add_system(Dolly::<MainCamera>::update_active)
         .run();
 }

@@ -27,7 +27,7 @@ const MAP_ROWS: usize = MAP.len();
 const MAP_COLS: usize = MAP[0].len();
 const TILE_SIZE: Vec3 = Vec3::new(2., 0.5, 2.);
 const LAVA_DEPTH: f32 = -20.;
-const PATH: [UVec2; 6] = [
+pub const PATH: [UVec2; 6] = [
     UVec2::new(0, 2),
     UVec2::new(9, 2),
     UVec2::new(9, 8),
