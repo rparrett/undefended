@@ -345,15 +345,23 @@ fn build_tower(
     if keyboard.just_pressed(KeyCode::B) {
         // TODO animate a pyramid-shaped collider in from below or something to slowly
         // push the player away.
-        commands.spawn((
-            SceneBundle {
-                scene: models.tower_base.clone(),
-                transform: Transform::from_translation(
-                    map_to_world(selected_tile) + Vec3::Y * 0.75,
-                ),
-                ..default()
-            },
-            Collider::cuboid(1.0, 3.0, 1.0),
-        ));
+        commands
+            .spawn((
+                SceneBundle {
+                    scene: models.tower_base.clone(),
+                    transform: Transform::from_translation(
+                        map_to_world(selected_tile) + Vec3::Y * 0.75,
+                    ),
+                    ..default()
+                },
+                Collider::cuboid(1.0, 3.0, 1.0),
+            ))
+            .with_children(|parent| {
+                parent.spawn(SceneBundle {
+                    scene: models.tower_head.clone(),
+                    transform: Transform::from_translation(Vec3::Y * 1.5),
+                    ..default()
+                });
+            });
     }
 }
