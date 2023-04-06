@@ -12,6 +12,7 @@ use starfield::StarfieldPlugin;
 mod loading;
 mod map;
 mod starfield;
+mod tower;
 
 #[derive(Component)]
 struct Player;
@@ -27,6 +28,9 @@ struct TileProbe;
 
 #[derive(Component)]
 struct LastTile(UVec2);
+
+#[derive(Component)]
+struct SelectedTile(Option<UVec2>);
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 enum GameState {
@@ -52,6 +56,7 @@ fn main() {
         .add_system(spawn_player.in_set(OnUpdate(GameState::Playing)))
         .add_system(track_last_tile.in_set(OnUpdate(GameState::Playing)))
         .add_system(lava.in_set(OnUpdate(GameState::Playing)))
+        .add_system(build_tower.in_set(OnUpdate(GameState::Playing)))
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
         //.add_plugin(RapierDebugRenderPlugin::default())
         .add_plugin(TnuaPlatformerPlugin)
@@ -152,30 +157,31 @@ fn update_camera(player_query: Query<&Transform, With<Player>>, mut rig_query: Q
 fn cursor(
     mut collision_events: EventReader<CollisionEvent>,
     cursor_query: Query<Entity, With<Cursor>>,
-    mut floor_query: Query<&mut Handle<StandardMaterial>, With<Floor>>,
-    floor_materials: Res<FloorMaterials>,
+    floor_query: Query<(Entity, &TilePos), With<Floor>>,
+    mut selected_tile_query: Query<&mut SelectedTile>,
 ) {
     for evt in collision_events.iter() {
         match evt {
             CollisionEvent::Started(e1, e2, _) => {
                 let is_cursor = cursor_query.iter_many([e1, e2]).count() > 0;
+                let is_floor = floor_query.iter_many([e1, e2]).count() > 0;
 
-                if is_cursor {
-                    let mut iter = floor_query.iter_many_mut([e1, e2]);
-                    while let Some(mut floor_material) = iter.fetch_next() {
-                        *floor_material = floor_materials.highlighted.clone();
+                if is_cursor && is_floor {
+                    for (_, tile_pos) in floor_query.iter_many([e1, e2]) {
+                        for mut selected_tile in selected_tile_query.iter_mut() {
+                            selected_tile.0 = Some(tile_pos.0);
+                        }
                     }
                 }
             }
             CollisionEvent::Stopped(e1, e2, _) => {
                 let is_cursor = cursor_query.iter_many([e1, e2]).count() > 0;
-                if !is_cursor {
-                    continue;
-                }
+                let is_floor = floor_query.iter_many([e1, e2]).count() > 0;
 
-                let mut iter = floor_query.iter_many_mut([e1, e2]);
-                while let Some(mut floor_material) = iter.fetch_next() {
-                    *floor_material = floor_materials.normal.clone();
+                if is_cursor && is_floor {
+                    for mut selected_tile in selected_tile_query.iter_mut() {
+                        selected_tile.0 = None;
+                    }
                 }
             }
         }
@@ -258,6 +264,7 @@ fn spawn_player(
                 Collider::capsule_y(0.30, 0.5),
                 ActiveEvents::COLLISION_EVENTS,
                 LastTile(event.0),
+                SelectedTile(None),
                 TnuaRapier3dSensorShape(Collider::cylinder(0.0, 0.49)),
                 TnuaPlatformerBundle::new_with_config(TnuaPlatformerConfig {
                     full_speed: 6.0,
@@ -316,5 +323,32 @@ fn spawn_player(
                     ActiveEvents::COLLISION_EVENTS,
                 ));
             });
+    }
+}
+
+fn build_tower(
+    mut commands: Commands,
+    keyboard: Res<Input<KeyCode>>,
+    selected_tile_query: Query<&SelectedTile>,
+    models: Res<Models>,
+) {
+    let Ok(selected_tile) = selected_tile_query.get_single() else {
+        return
+    };
+    let Some(selected_tile) = selected_tile.0 else {
+        return
+    };
+
+    if keyboard.just_pressed(KeyCode::B) {
+        // TODO animate a pyramid-shaped collider in from below or something to slowly
+        // push the player away.
+        commands.spawn((
+            SceneBundle {
+                scene: models.tower_base.clone(),
+                transform: Transform::from_translation(map_to_world(selected_tile)),
+                ..default()
+            },
+            Collider::cuboid(1.0, 3.0, 1.0),
+        ));
     }
 }
