@@ -348,7 +348,9 @@ fn build_tower(
         commands.spawn((
             SceneBundle {
                 scene: models.tower_base.clone(),
-                transform: Transform::from_translation(map_to_world(selected_tile)),
+                transform: Transform::from_translation(
+                    map_to_world(selected_tile) + Vec3::Y * 0.75,
+                ),
                 ..default()
             },
             Collider::cuboid(1.0, 3.0, 1.0),
