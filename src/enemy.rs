@@ -1,4 +1,5 @@
 use bevy::{prelude::*, utils::Duration};
+use bevy_rapier3d::prelude::*;
 
 use crate::{
     loading::Models,
@@ -20,10 +21,10 @@ impl Default for EnemyTimer {
 }
 
 #[derive(Component)]
-struct PathIndex(usize);
+pub struct PathIndex(pub usize);
 
 #[derive(Component)]
-struct Enemy;
+pub struct Enemy;
 
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
@@ -46,11 +47,16 @@ fn spawn(
 
     commands.spawn((
         Enemy,
+        Name::new("Enemy"),
         SceneBundle {
             scene: models.enemy1.clone(),
             transform: Transform::from_translation(map_to_world(PATH[0])),
             ..default()
         },
+        Collider::ball(0.5),
+        ActiveEvents::COLLISION_EVENTS,
+        ActiveCollisionTypes::STATIC_STATIC,
+        Sensor,
         PathIndex(0),
     ));
 }

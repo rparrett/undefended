@@ -11,6 +11,7 @@ use enemy::EnemyPlugin;
 use loading::{LoadingPlugin, Models};
 use map::{map_to_world, Floor, Lava, MapPlugin, MovingFloor, TilePos};
 use starfield::StarfieldPlugin;
+use tower::{SpawnTowerEvent, Target, Tower, TowerPlugin};
 
 mod enemy;
 mod loading;
@@ -69,13 +70,14 @@ fn main() {
         .add_system(lava.in_set(OnUpdate(GameState::Playing)))
         .add_system(build_tower.in_set(OnUpdate(GameState::Playing)))
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
-        //.add_plugin(RapierDebugRenderPlugin::default())
+        .add_plugin(RapierDebugRenderPlugin::default())
         .add_plugin(TnuaPlatformerPlugin)
         .add_plugin(TnuaRapier3dPlugin)
         .add_plugin(LoadingPlugin)
         .add_plugin(StarfieldPlugin)
         .add_plugin(MapPlugin)
         .add_plugin(EnemyPlugin)
+        .add_plugin(TowerPlugin)
         .add_system(Dolly::<MainCamera>::update_active)
         .run();
 }
@@ -261,6 +263,7 @@ fn spawn_player(
         commands
             .spawn((
                 Player,
+                Name::new("Player"),
                 SpatialBundle {
                     transform: Transform::from_translation(map_to_world(event.0) + Vec3::Y * 0.5),
                     ..default()
@@ -333,10 +336,9 @@ fn spawn_player(
 }
 
 fn build_tower(
-    mut commands: Commands,
     keyboard: Res<Input<KeyCode>>,
     selected_tile_query: Query<&SelectedTile>,
-    models: Res<Models>,
+    mut spawn_tower_events: EventWriter<SpawnTowerEvent>,
 ) {
     let Ok(selected_tile) = selected_tile_query.get_single() else {
         return
@@ -346,25 +348,6 @@ fn build_tower(
     };
 
     if keyboard.just_pressed(KeyCode::B) {
-        // TODO animate a pyramid-shaped collider in from below or something to slowly
-        // push the player away.
-        commands
-            .spawn((
-                SceneBundle {
-                    scene: models.tower_base.clone(),
-                    transform: Transform::from_translation(
-                        map_to_world(selected_tile) + Vec3::Y * 0.75,
-                    ),
-                    ..default()
-                },
-                Collider::cuboid(1.0, 3.0, 1.0),
-            ))
-            .with_children(|parent| {
-                parent.spawn(SceneBundle {
-                    scene: models.tower_head.clone(),
-                    transform: Transform::from_translation(Vec3::Y * 1.5),
-                    ..default()
-                });
-            });
+        spawn_tower_events.send(SpawnTowerEvent(selected_tile));
     }
 }
