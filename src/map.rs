@@ -150,7 +150,7 @@ fn spawn_map(
                             direction: MovingFloorDirection::Forward,
                             dwell_timer: Timer::new(Duration::from_secs_f32(1.), TimerMode::Once),
                         },
-                        RigidBody::KinematicVelocityBased,
+                        RigidBody::KinematicPositionBased,
                         Velocity::default(),
                     ));
                 }
@@ -201,10 +201,10 @@ fn spawn_map(
 }
 
 fn moving_floor(
-    mut query: Query<(&mut Velocity, &Transform, &mut MovingFloor), With<MovingFloor>>,
+    mut query: Query<(&mut Transform, &mut MovingFloor), With<MovingFloor>>,
     time: Res<Time>,
 ) {
-    for (mut velocity, transform, mut floor) in query.iter_mut() {
+    for (mut transform, mut floor) in query.iter_mut() {
         match floor.state {
             MovingFloorState::Dwell => {
                 floor.dwell_timer.tick(time.delta());
@@ -216,19 +216,24 @@ fn moving_floor(
             MovingFloorState::Move => {
                 if let Some(next_waypoint) = floor.next_waypoint() {
                     let world = map_to_world(next_waypoint) + Vec3::Y * -0.5;
-                    let delta = world - transform.translation;
-                    let dist = delta.length();
+                    let diff = world - (transform.translation);
+                    let dist = diff.length();
 
-                    // TODO acceleration
-                    if dist > 0.01 {
-                        velocity.linvel = delta.normalize_or_zero() * floor.speed;
+                    let step = floor.speed * time.delta_seconds();
+
+                    if step < dist {
+                        transform.translation.x +=
+                            step / dist * (world.x - transform.translation.x);
+                        transform.translation.z +=
+                            step / dist * (world.z - transform.translation.z);
                     } else {
-                        velocity.linvel = Vec3::ZERO;
+                        transform.translation.x = world.x;
+                        transform.translation.z = world.z;
+
                         floor.advance();
                     }
                 } else {
                     floor.state = MovingFloorState::Dwell;
-                    velocity.linvel = Vec3::ZERO;
                     floor.direction.toggle();
                 }
             }
