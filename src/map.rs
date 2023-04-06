@@ -1,9 +1,13 @@
-use std::time::Duration;
+use std::{
+    f32::consts::{FRAC_PI_2, FRAC_PI_4, PI},
+    time::Duration,
+};
 
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
+use rand::{seq::SliceRandom, thread_rng, Rng};
 
-use crate::GameState;
+use crate::{loading::Models, GameState};
 
 pub struct MapPlugin;
 
@@ -122,24 +126,26 @@ pub fn map_to_world(pos: UVec2) -> Vec3 {
     );
 }
 
-fn spawn_map(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    floor_materials: Res<FloorMaterials>,
-) {
-    let tile_mesh = meshes.add(shape::Box::new(TILE_SIZE.x, TILE_SIZE.y, TILE_SIZE.x).into());
+fn spawn_map(mut commands: Commands, models: Res<Models>) {
+    let mut rng = thread_rng();
+
+    let handles = [&models.tile1, &models.tile2, &models.tile3, &models.tile4];
 
     for (row, row_val) in MAP.iter().enumerate() {
         for (col, col_val) in row_val.iter().enumerate() {
             if *col_val == 1 {
                 let pos = UVec2::new(col as u32, row as u32);
 
+                let handle = *handles.choose(&mut rng).unwrap();
+
                 let mut cmds = commands.spawn((
                     Floor,
-                    PbrBundle {
-                        transform: Transform::from_translation(map_to_world(pos) + Vec3::Y * -0.5),
-                        mesh: tile_mesh.clone(),
-                        material: floor_materials.normal.clone(),
+                    SceneBundle {
+                        scene: handle.clone(),
+                        transform: Transform::from_translation(map_to_world(pos) + Vec3::Y * -0.5)
+                            .with_rotation(Quat::from_rotation_y(
+                                rng.gen_range(0..3) as f32 * FRAC_PI_2,
+                            )),
                         ..default()
                     },
                     TilePos(pos),
@@ -148,16 +154,18 @@ fn spawn_map(
                 ));
 
                 if col == 3 && row == 10 {
-                    cmds.insert(MovingFloor {
-                        waypoints: vec![UVec2::new(3, 10), UVec2::new(8, 10)],
-                        index: 0,
-                        speed: 5.,
-                        state: MovingFloorState::Dwell,
-                        direction: MovingFloorDirection::Forward,
-                        dwell_timer: Timer::new(Duration::from_secs_f32(1.), TimerMode::Once),
-                    });
-                    cmds.insert(RigidBody::KinematicVelocityBased);
-                    cmds.insert(Velocity::default());
+                    cmds.insert((
+                        MovingFloor {
+                            waypoints: vec![UVec2::new(3, 10), UVec2::new(8, 10)],
+                            index: 0,
+                            speed: 5.,
+                            state: MovingFloorState::Dwell,
+                            direction: MovingFloorDirection::Forward,
+                            dwell_timer: Timer::new(Duration::from_secs_f32(1.), TimerMode::Once),
+                        },
+                        RigidBody::KinematicVelocityBased,
+                        Velocity::default(),
+                    ));
                 }
             }
         }

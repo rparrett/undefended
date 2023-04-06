@@ -10,3 +10,5 @@ bevy = "0.10.1"
 bevy-tnua = { version = "0.2.1", features = ["rapier_3d"] }
 bevy_rapier3d = { version = "0.21.0", features = ["debug-render-3d"] }
 bevy_dolly = { git = "https://github.com/BlackPhlox/bevy_dolly" }
+bevy_asset_loader = "0.16.0"
+rand = "0.8.5"

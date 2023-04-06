@@ -5,7 +5,7 @@ use bevy_tnua::{
     TnuaAnimatingState, TnuaFreeFallBehavior, TnuaPlatformerBundle, TnuaPlatformerConfig,
     TnuaPlatformerControls, TnuaPlatformerPlugin, TnuaRapier3dPlugin, TnuaRapier3dSensorShape,
 };
-use loading::LoadingPlugin;
+use loading::{LoadingPlugin, Models};
 use map::{map_to_world, Floor, FloorMaterials, Lava, MapPlugin, MovingFloor, TilePos};
 use starfield::StarfieldPlugin;
 
@@ -45,15 +45,15 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_state::<GameState>()
         .add_event::<SpawnPlayerEvent>()
-        .add_startup_system(setup)
-        .add_system(apply_controls)
-        .add_system(update_camera)
-        .add_system(cursor)
-        .add_system(spawn_player)
-        .add_system(track_last_tile)
-        .add_system(lava)
+        .add_system(setup.in_schedule(OnEnter(GameState::Playing)))
+        .add_system(apply_controls.in_set(OnUpdate(GameState::Playing)))
+        .add_system(update_camera.in_set(OnUpdate(GameState::Playing)))
+        .add_system(cursor.in_set(OnUpdate(GameState::Playing)))
+        .add_system(spawn_player.in_set(OnUpdate(GameState::Playing)))
+        .add_system(track_last_tile.in_set(OnUpdate(GameState::Playing)))
+        .add_system(lava.in_set(OnUpdate(GameState::Playing)))
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
-        .add_plugin(RapierDebugRenderPlugin::default())
+        //.add_plugin(RapierDebugRenderPlugin::default())
         .add_plugin(TnuaPlatformerPlugin)
         .add_plugin(TnuaRapier3dPlugin)
         .add_plugin(LoadingPlugin)
@@ -69,7 +69,7 @@ fn setup(mut commands: Commands, mut spawn_player_events: EventWriter<SpawnPlaye
     // light
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
-            illuminance: 1500.0,
+            illuminance: 2500.0,
             shadows_enabled: true,
             ..default()
         },
@@ -243,6 +243,7 @@ fn spawn_player(
     mut events: EventReader<SpawnPlayerEvent>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    models: Res<Models>,
 ) {
     for event in events.iter() {
         commands
@@ -254,7 +255,7 @@ fn spawn_player(
                 },
                 RigidBody::Dynamic,
                 Velocity::default(),
-                Collider::capsule_y(0.5, 0.5),
+                Collider::capsule_y(0.30, 0.5),
                 ActiveEvents::COLLISION_EVENTS,
                 LastTile(event.0),
                 TnuaRapier3dSensorShape(Collider::cylinder(0.0, 0.49)),
@@ -280,10 +281,15 @@ fn spawn_player(
                 }),
             ))
             .with_children(|parent| {
-                parent.spawn(PbrBundle {
-                    mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-                    material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-                    transform: Transform::from_xyz(0.0, -0.5, 0.0),
+                // parent.spawn(PbrBundle {
+                //     mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+                //     material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+                //     transform: Transform::from_xyz(0.0, -0.5, 0.0),
+                //     ..default()
+                // });
+                parent.spawn(SceneBundle {
+                    scene: models.player.clone(),
+                    transform: Transform::from_xyz(0., -0.4, 0.),
                     ..default()
                 });
 
