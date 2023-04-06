@@ -1,6 +1,6 @@
 use std::{f32::consts::FRAC_PI_2, time::Duration};
 
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::HashSet};
 use bevy_rapier3d::prelude::*;
 use rand::{seq::SliceRandom, thread_rng, Rng};
 
@@ -27,6 +27,14 @@ const MAP_ROWS: usize = MAP.len();
 const MAP_COLS: usize = MAP[0].len();
 const TILE_SIZE: Vec3 = Vec3::new(2., 0.5, 2.);
 const LAVA_DEPTH: f32 = -20.;
+const PATH: [UVec2; 6] = [
+    UVec2::new(0, 2),
+    UVec2::new(9, 2),
+    UVec2::new(9, 8),
+    UVec2::new(4, 8),
+    UVec2::new(4, 7),
+    UVec2::new(0, 7),
+];
 
 #[derive(Component)]
 pub struct Floor;
@@ -100,7 +108,12 @@ pub fn map_to_world(pos: UVec2) -> Vec3 {
     )
 }
 
-fn spawn_map(mut commands: Commands, models: Res<Models>) {
+fn spawn_map(
+    mut commands: Commands,
+    models: Res<Models>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+) {
     let mut rng = thread_rng();
 
     let handles = [&models.tile1, &models.tile2, &models.tile3, &models.tile4];
@@ -142,6 +155,40 @@ fn spawn_map(mut commands: Commands, models: Res<Models>) {
                     ));
                 }
             }
+        }
+    }
+
+    let path_mat = materials.add(StandardMaterial {
+        base_color: Color::rgba(1.0, 0.0, 0.0, 0.3),
+        alpha_mode: AlphaMode::Blend,
+        ..default()
+    });
+    for window in PATH.windows(2) {
+        let (start, end) = (window[0], window[1]);
+
+        let mut xs = [start.x, end.x];
+        xs.sort();
+        let [start_x, end_x] = xs;
+
+        let mut ys = [start.y, end.y];
+        ys.sort();
+        let [start_y, end_y] = ys;
+
+        let mut path_tiles: HashSet<UVec2> = HashSet::default();
+
+        for col in start_x..=end_x {
+            for row in start_y..=end_y {
+                path_tiles.insert(UVec2::new(col, row));
+            }
+        }
+
+        for path_tile in path_tiles {
+            commands.spawn(PbrBundle {
+                mesh: meshes.add(Mesh::from(shape::Cube { size: 0.25 })),
+                material: path_mat.clone(),
+                transform: Transform::from_translation(map_to_world(path_tile)),
+                ..default()
+            });
         }
     }
 
