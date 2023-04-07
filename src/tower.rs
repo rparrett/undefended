@@ -226,7 +226,7 @@ fn shooting(
             return;
         }
 
-        let mut laser_transform = transform.clone();
+        let mut laser_transform = *transform;
         laser_transform.translation.y += 1.5;
 
         commands.spawn((
