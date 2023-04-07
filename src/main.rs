@@ -11,7 +11,7 @@ use enemy::EnemyPlugin;
 use loading::{LoadingPlugin, Models};
 use map::{map_to_world, Floor, Lava, MapPlugin, MovingFloor, TilePos};
 use starfield::StarfieldPlugin;
-use tower::{SpawnTowerEvent, Target, Tower, TowerPlugin};
+use tower::{SpawnTowerEvent, TowerPlugin};
 
 mod enemy;
 mod loading;
@@ -57,28 +57,30 @@ fn main() {
     #[cfg(feature = "inspector")]
     {
         app.add_plugin(WorldInspectorPlugin::new());
+        app.add_plugin(RapierDebugRenderPlugin::default());
     }
 
-    app.add_state::<GameState>()
-        .add_event::<SpawnPlayerEvent>()
-        .add_system(setup.in_schedule(OnEnter(GameState::Playing)))
+    app.add_state::<GameState>().add_event::<SpawnPlayerEvent>();
+
+    app.add_system(setup.in_schedule(OnEnter(GameState::Playing)))
         .add_system(apply_controls.in_set(OnUpdate(GameState::Playing)))
         .add_system(update_camera.in_set(OnUpdate(GameState::Playing)))
         .add_system(cursor.in_set(OnUpdate(GameState::Playing)))
         .add_system(spawn_player.in_set(OnUpdate(GameState::Playing)))
         .add_system(track_last_tile.in_set(OnUpdate(GameState::Playing)))
         .add_system(lava.in_set(OnUpdate(GameState::Playing)))
-        .add_system(build_tower.in_set(OnUpdate(GameState::Playing)))
-        .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
-        .add_plugin(RapierDebugRenderPlugin::default())
+        .add_system(build_tower.in_set(OnUpdate(GameState::Playing)));
+
+    app.add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugin(TnuaPlatformerPlugin)
         .add_plugin(TnuaRapier3dPlugin)
-        .add_plugin(LoadingPlugin)
+        .add_system(Dolly::<MainCamera>::update_active);
+
+    app.add_plugin(LoadingPlugin)
         .add_plugin(StarfieldPlugin)
         .add_plugin(MapPlugin)
         .add_plugin(EnemyPlugin)
         .add_plugin(TowerPlugin)
-        .add_system(Dolly::<MainCamera>::update_active)
         .run();
 }
 
