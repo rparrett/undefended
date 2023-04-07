@@ -23,11 +23,32 @@ pub struct SpawnTowerEvent(pub UVec2);
 #[derive(Component)]
 pub struct RangeSensor;
 
+#[derive(Component)]
+struct Laser;
+
+#[derive(Component)]
+struct Cooldown(Timer);
+
+#[derive(Resource)]
+struct LaserMaterial(Handle<StandardMaterial>);
+impl FromWorld for LaserMaterial {
+    fn from_world(world: &mut World) -> Self {
+        let mut materials = world.resource_mut::<Assets<StandardMaterial>>();
+        Self(materials.add(StandardMaterial {
+            base_color: Color::YELLOW,
+            emissive: Color::WHITE,
+            unlit: true,
+            ..default()
+        }))
+    }
+}
+
 pub struct TowerPlugin;
 
 impl Plugin for TowerPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<SpawnTowerEvent>()
+            .init_resource::<LaserMaterial>()
             .add_system(spawn.in_set(OnUpdate(GameState::Playing)))
             .add_system(ranging.in_set(OnUpdate(GameState::Playing)))
             .add_system(
@@ -35,7 +56,13 @@ impl Plugin for TowerPlugin {
                     .in_set(OnUpdate(GameState::Playing))
                     .after(ranging),
             )
-            .add_system(movement.in_set(OnUpdate(GameState::Playing)));
+            .add_system(
+                shooting
+                    .in_set(OnUpdate(GameState::Playing))
+                    .after(targeting),
+            )
+            .add_system(movement.in_set(OnUpdate(GameState::Playing)))
+            .add_system(laser_movement.in_set(OnUpdate(GameState::Playing)));
     }
 }
 
@@ -158,6 +185,7 @@ fn spawn(mut commands: Commands, mut events: EventReader<SpawnTowerEvent>, model
                 },
                 Target(None),
                 InRange::default(),
+                Cooldown(Timer::from_seconds(1., TimerMode::Repeating)),
                 RigidBody::Fixed,
                 Collider::cuboid(1.0, 3.0, 1.0),
                 ActiveEvents::COLLISION_EVENTS,
@@ -182,5 +210,61 @@ fn spawn(mut commands: Commands, mut events: EventReader<SpawnTowerEvent>, model
                     ActiveEvents::COLLISION_EVENTS,
                 ));
             });
+    }
+}
+
+fn shooting(
+    mut commands: Commands,
+    mut tower_query: Query<(&mut Cooldown, &Target, &Transform), With<Tower>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    material: Res<LaserMaterial>,
+    time: Res<Time>,
+) {
+    for (mut cooldown, target, transform) in tower_query.iter_mut() {
+        cooldown.0.tick(time.delta());
+        if !cooldown.0.just_finished() {
+            return;
+        }
+
+        let mut laser_transform = transform.clone();
+        laser_transform.translation.y += 1.5;
+
+        commands.spawn((
+            Laser,
+            Name::new("Laser"),
+            PbrBundle {
+                transform: laser_transform,
+                mesh: meshes.add(shape::Box::new(0.1, 0.1, 0.1).into()),
+                material: material.0.clone(),
+                ..default()
+            },
+            Target(target.0),
+        ));
+    }
+}
+
+fn laser_movement(
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut Transform, &Target), With<Laser>>,
+    enemy_query: Query<&Transform, Without<Laser>>,
+    time: Res<Time>,
+) {
+    for (laser_entity, mut transform, target) in query.iter_mut() {
+        let Some(target_entity) = target.0 else {
+            continue;
+        };
+
+        if let Ok(enemy) = enemy_query.get(target_entity) {
+            let diff = enemy.translation - transform.translation;
+            let dist = diff.length();
+            let step = time.delta_seconds() * 8.;
+
+            if dist > step {
+                transform.translation += step * diff.normalize();
+            } else {
+                // TODO deal damage
+                commands.entity(laser_entity).despawn_recursive();
+            }
+        }
     }
 }
