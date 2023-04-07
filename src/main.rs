@@ -9,7 +9,7 @@ use bevy_tnua::{
 };
 use enemy::EnemyPlugin;
 use loading::{LoadingPlugin, Models};
-use map::{map_to_world, Floor, Lava, MapPlugin, MovingFloor, TilePos};
+use map::{map_to_world, Floor, Lava, MapPlugin, MovingFloor, TilePos, START_TILE};
 use starfield::StarfieldPlugin;
 use tower::{SpawnTowerEvent, TowerPlugin};
 
@@ -47,7 +47,6 @@ enum GameState {
 struct SpawnPlayerEvent(UVec2);
 
 const CAMERA_OFFSET: Vec3 = Vec3::new(0., 10., 6.);
-const START_TILE: UVec2 = UVec2::new(10, 9);
 
 fn main() {
     let mut app = App::new();
