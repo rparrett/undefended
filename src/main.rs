@@ -7,6 +7,8 @@ use bevy_tnua::{
     TnuaFreeFallBehavior, TnuaPlatformerBundle, TnuaPlatformerConfig, TnuaPlatformerControls,
     TnuaPlatformerPlugin, TnuaRapier3dPlugin, TnuaRapier3dSensorShape,
 };
+use leafwing_input_manager::prelude::*;
+
 use enemy::EnemyPlugin;
 use loading::{LoadingPlugin, Models};
 use map::{map_to_world, Floor, Lava, MapPlugin, MovingFloor, TilePos, START_TILE};
@@ -21,6 +23,13 @@ mod tower;
 
 #[derive(Component)]
 struct Player;
+
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug)]
+enum Action {
+    Run,
+    Jump,
+    Build,
+}
 
 #[derive(Component)]
 struct MainCamera;
@@ -73,7 +82,8 @@ fn main() {
     app.add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugin(TnuaPlatformerPlugin)
         .add_plugin(TnuaRapier3dPlugin)
-        .add_system(Dolly::<MainCamera>::update_active);
+        .add_system(Dolly::<MainCamera>::update_active)
+        .add_plugin(InputManagerPlugin::<Action>::default());
 
     app.add_plugin(LoadingPlugin)
         .add_plugin(StarfieldPlugin)
@@ -121,27 +131,27 @@ fn setup(mut commands: Commands, mut spawn_player_events: EventWriter<SpawnPlaye
     ));
 }
 
-fn apply_controls(keyboard: Res<Input<KeyCode>>, mut query: Query<&mut TnuaPlatformerControls>) {
+fn apply_controls(
+    action_state_query: Query<&ActionState<Action>, With<Player>>,
+    mut query: Query<&mut TnuaPlatformerControls>,
+) {
+    let Ok(action_state) = action_state_query.get_single() else {
+        return;
+    };
+
     let mut direction = Vec3::ZERO;
+    let mut turn_in_place = false;
 
-    if keyboard.pressed(KeyCode::Up) || keyboard.pressed(KeyCode::W) {
-        direction -= Vec3::Z;
-    }
-    if keyboard.pressed(KeyCode::Down) || keyboard.pressed(KeyCode::S) {
-        direction += Vec3::Z;
-    }
-    if keyboard.pressed(KeyCode::Left) || keyboard.pressed(KeyCode::A) {
-        direction -= Vec3::X;
-    }
-    if keyboard.pressed(KeyCode::Right) || keyboard.pressed(KeyCode::D) {
-        direction += Vec3::X;
+    if action_state.pressed(Action::Run) {
+        let axis_pair = action_state.clamped_axis_pair(Action::Run).unwrap();
+
+        let vec = Vec3::new(axis_pair.x(), 0., -axis_pair.y());
+        turn_in_place = vec.x.abs() < 0.3 && vec.z.abs() < 0.3;
+
+        direction += vec;
     }
 
-    let jump = keyboard.pressed(KeyCode::Space);
-
-    let turn_in_place = [KeyCode::LAlt, KeyCode::RAlt]
-        .into_iter()
-        .any(|key_code| keyboard.pressed(key_code));
+    let jump = action_state.pressed(Action::Jump);
 
     for mut controls in query.iter_mut() {
         *controls = TnuaPlatformerControls {
@@ -296,6 +306,34 @@ fn spawn_player(
                     tilt_offset_angacl: 500.0,
                     turning_angvel: 5.0,
                 }),
+                InputManagerBundle::<Action> {
+                    action_state: ActionState::default(),
+                    input_map: InputMap::default()
+                        .insert(KeyCode::Space, Action::Jump)
+                        .insert(GamepadButtonType::South, Action::Jump)
+                        .insert(KeyCode::B, Action::Build)
+                        .insert(GamepadButtonType::West, Action::Build)
+                        .insert(DualAxis::left_stick(), Action::Run)
+                        .insert(
+                            VirtualDPad {
+                                up: QwertyScanCode::W.into(),
+                                down: QwertyScanCode::S.into(),
+                                left: QwertyScanCode::A.into(),
+                                right: QwertyScanCode::D.into(),
+                            },
+                            Action::Run,
+                        )
+                        .insert(
+                            VirtualDPad {
+                                up: QwertyScanCode::Up.into(),
+                                down: QwertyScanCode::Down.into(),
+                                left: QwertyScanCode::Left.into(),
+                                right: QwertyScanCode::Right.into(),
+                            },
+                            Action::Run,
+                        )
+                        .build(),
+                },
             ))
             .with_children(|parent| {
                 // parent.spawn(PbrBundle {
@@ -337,7 +375,7 @@ fn spawn_player(
 }
 
 fn build_tower(
-    keyboard: Res<Input<KeyCode>>,
+    action_state_query: Query<&ActionState<Action>, With<Player>>,
     selected_tile_query: Query<&SelectedTile>,
     mut spawn_tower_events: EventWriter<SpawnTowerEvent>,
 ) {
@@ -348,7 +386,11 @@ fn build_tower(
         return
     };
 
-    if keyboard.just_pressed(KeyCode::B) {
+    let Ok(action_state) = action_state_query.get_single() else {
+        return;
+    };
+
+    if action_state.just_pressed(Action::Build) {
         spawn_tower_events.send(SpawnTowerEvent(selected_tile));
     }
 }

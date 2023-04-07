@@ -16,3 +16,4 @@ bevy_dolly = { git = "https://github.com/BlackPhlox/bevy_dolly" }
 bevy_asset_loader = "0.16.0"
 rand = "0.8.5"
 bevy-inspector-egui = { version = "0.18.3", optional = true }
+leafwing-input-manager = "0.9.1"

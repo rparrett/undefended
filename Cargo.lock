@@ -720,6 +720,7 @@ dependencies = [
  "bevy_asset_loader",
  "bevy_dolly",
  "bevy_rapier3d",
+ "leafwing-input-manager",
  "rand",
 ]
 
