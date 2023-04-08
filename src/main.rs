@@ -98,6 +98,8 @@ fn main() {
     {
         app.add_plugin(WorldInspectorPlugin::new());
         app.add_plugin(RapierDebugRenderPlugin::default());
+        app.register_type::<SelectedTile>();
+        app.register_type::<SelectedItem>();
     }
 
     app.add_state::<GameState>().add_event::<SpawnPlayerEvent>();
