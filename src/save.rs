@@ -76,7 +76,6 @@ pub fn load_system(mut commands: Commands) {
 
         commands.insert_resource(save_file.sfx);
         commands.insert_resource(save_file.music);
-        commands.insert_resource(save_file.leaderboard);
     }
 }
 

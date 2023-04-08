@@ -22,3 +22,6 @@ bevy-ui-navigation = "0.24.0"
 rand = "0.8.5"
 serde = "*"
 ron = "0.8.0"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = {version="*", features = ["console", "Window", "Storage"]}
