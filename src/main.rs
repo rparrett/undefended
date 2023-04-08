@@ -222,8 +222,6 @@ fn apply_controls(
 }
 
 fn update_camera(player_query: Query<&Transform, With<Player>>, mut rig_query: Query<&mut Rig>) {
-    let count = player_query.iter().len();
-
     let Ok(player) = player_query.get_single() else {
         return;
     };
@@ -514,12 +512,12 @@ fn grab(
 
 fn build_tower(
     mut commands: Commands,
-    player_query: Query<(Entity, &Children, &ActionState<Action>), With<Player>>,
+    player_query: Query<(&Children, &ActionState<Action>), With<Player>>,
     selected_tile_query: Query<&SelectedTile>,
     grabbed_item_query: Query<(Entity, &Item)>,
     mut events: EventWriter<SpawnTowerEvent>,
 ) {
-    let Ok((entity, children, action_state)) = player_query.get_single() else {
+    let Ok((children, action_state)) = player_query.get_single() else {
         return;
     };
 
