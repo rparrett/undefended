@@ -19,7 +19,7 @@ use map::{
 use save::SavePlugin;
 use settings::{MusicSetting, SfxSetting};
 use starfield::StarfieldPlugin;
-use tower::{SpawnTowerEvent, Tower, TowerPlugin};
+use tower::{Ammo, SpawnTowerEvent, Tower, TowerPlugin};
 use ui::UiPlugin;
 
 mod enemy;
@@ -123,6 +123,7 @@ fn main() {
         .add_system(lava.in_set(OnUpdate(GameState::Playing)))
         .add_system(grab.in_set(OnUpdate(GameState::Playing)))
         .add_system(build_tower.in_set(OnUpdate(GameState::Playing)))
+        .add_system(feed_tower.in_set(OnUpdate(GameState::Playing)))
         .add_system(
             reset_item_on_grab
                 .in_base_set(AfterPhysics)
@@ -572,6 +573,51 @@ fn build_tower(
 
         commands.entity(entity).despawn_recursive();
         events.send(SpawnTowerEvent(selected_tile))
+    }
+}
+
+fn feed_tower(
+    mut commands: Commands,
+    player_query: Query<(&Children, &ActionState<Action>), With<Player>>,
+    selected_tile_query: Query<&SelectedTile>,
+    grabbed_item_query: Query<(Entity, &Item)>,
+    mut tower_query: Query<(&TilePos, &mut Ammo), With<Tower>>,
+    audio: Res<Audio>,
+    game_audio: Res<Sounds>,
+    audio_setting: Res<SfxSetting>,
+) {
+    let Ok((children, action_state)) = player_query.get_single() else {
+        return;
+    };
+
+    if !action_state.just_pressed(Action::Grab) {
+        return;
+    }
+
+    let Ok(selected_tile) = selected_tile_query.get_single() else {
+        return
+    };
+
+    let Some(selected_tile) = selected_tile.0 else {
+        return
+    };
+
+    for (entity, item) in grabbed_item_query.iter_many(children) {
+        if *item != Item::LaserAmmo {
+            continue;
+        }
+
+        let Some((_, mut ammo)) = tower_query.iter_mut().find(|(pos, _)| pos.0 == selected_tile) else {
+            audio.play_with_settings(
+                game_audio.bad.clone(),
+                PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
+            );
+            continue;
+        };
+
+        ammo.current = ammo.max;
+
+        commands.entity(entity).despawn_recursive();
     }
 }
 
