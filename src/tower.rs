@@ -96,7 +96,6 @@ fn movement(
             continue
         };
 
-        // TODO use y for gun barrels
         let diff_xz = (transform.translation - target_transform.translation).xz();
 
         let mut iter = tower_head_query.iter_many_mut(children);
