@@ -246,6 +246,10 @@ fn shooting(
             continue;
         }
 
+        if target.0.is_none() {
+            continue;
+        }
+
         let mut laser_transform = *transform;
         laser_transform.translation.y += 1.5;
 
