@@ -13,7 +13,9 @@ use leafwing_input_manager::prelude::*;
 use enemy::EnemyPlugin;
 use loading::{LoadingPlugin, Models, Sounds};
 use main_menu::MainMenuPlugin;
-use map::{map_to_world, Floor, Item, Lava, MapPlugin, MovingFloor, TilePos, START_TILE};
+use map::{
+    map_to_world, Floor, Item, ItemSpawner, Lava, MapPlugin, MovingFloor, TilePos, START_TILE,
+};
 use save::SavePlugin;
 use settings::{MusicSetting, SfxSetting};
 use starfield::StarfieldPlugin;
@@ -485,6 +487,9 @@ fn grab(
     grabbed_item_query: Query<(), With<GrabbedItem>>,
     selected_item_query: Query<&SelectedItem>,
     mut item_query: Query<&Item>,
+    audio: Res<Audio>,
+    game_audio: Res<Sounds>,
+    audio_setting: Res<SfxSetting>,
 ) {
     let Ok((entity, children, action_state)) = player_query.get_single() else {
         return;
@@ -503,7 +508,14 @@ fn grab(
     if item_query.get_mut(selected_item).is_err() {
         return;
     };
+
+    // player is already holding an item
     if grabbed_item_query.iter_many(children).count() > 0 {
+        audio.play_with_settings(
+            game_audio.bad.clone(),
+            PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
+        );
+
         return;
     }
 
@@ -519,7 +531,7 @@ fn build_tower(
     player_query: Query<(&Children, &ActionState<Action>), With<Player>>,
     selected_tile_query: Query<&SelectedTile>,
     grabbed_item_query: Query<(Entity, &Item)>,
-    invalid_pos_query: Query<&TilePos, Or<(With<MovingFloor>, With<Tower>)>>,
+    invalid_pos_query: Query<&TilePos, Or<(With<MovingFloor>, With<Tower>, With<ItemSpawner>)>>,
     audio: Res<Audio>,
     game_audio: Res<Sounds>,
     audio_setting: Res<SfxSetting>,

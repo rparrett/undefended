@@ -14,4 +14,3 @@
 
 - turning in place for keyboard users
 - configure directional light
-- don't allow player to build tower on item spawn
