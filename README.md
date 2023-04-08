@@ -14,3 +14,4 @@
 
 - turning in place for keyboard users
 - configure directional light
+- animate spawned items up from inside spawner
