@@ -15,10 +15,16 @@ pub struct Models {
     pub tile3: Handle<Scene>,
     #[asset(path = "models/tile4.glb#Scene0")]
     pub tile4: Handle<Scene>,
+    #[asset(path = "models/itemspawner.glb#Scene0")]
+    pub item_spawner: Handle<Scene>,
     #[asset(path = "models/towerbase.glb#Scene0")]
     pub tower_base: Handle<Scene>,
     #[asset(path = "models/towerheadsm.glb#Scene0")]
     pub tower_head: Handle<Scene>,
+    #[asset(path = "models/towerkit.glb#Scene0")]
+    pub tower_kit: Handle<Scene>,
+    #[asset(path = "models/laserammo.glb#Scene0")]
+    pub laser_ammo: Handle<Scene>,
     #[asset(path = "models/enemy1.glb#Scene0")]
     pub enemy1: Handle<Scene>,
     #[asset(path = "models/player.glb#Scene0")]

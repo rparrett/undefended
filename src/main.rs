@@ -13,7 +13,7 @@ use leafwing_input_manager::prelude::*;
 use enemy::EnemyPlugin;
 use loading::{LoadingPlugin, Models, Sounds};
 use main_menu::MainMenuPlugin;
-use map::{map_to_world, Floor, Lava, MapPlugin, MovingFloor, TilePos, START_TILE};
+use map::{map_to_world, Floor, Item, Lava, MapPlugin, MovingFloor, TilePos, START_TILE};
 use save::SavePlugin;
 use settings::MusicSetting;
 use starfield::StarfieldPlugin;
@@ -36,7 +36,7 @@ struct Player;
 enum Action {
     Run,
     Jump,
-    Build,
+    Grab,
 }
 
 #[derive(Component)]
@@ -49,10 +49,19 @@ struct Cursor;
 struct TileProbe;
 
 #[derive(Component)]
-struct LastTile(UVec2);
+struct ItemProbe;
 
 #[derive(Component)]
+struct LastTile(UVec2);
+
+#[derive(Component, Default, Reflect)]
 struct SelectedTile(Option<UVec2>);
+
+#[derive(Component, Default, Reflect)]
+struct SelectedItem(Option<Entity>);
+
+#[derive(Component)]
+struct GrabbedItem;
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 enum GameState {
@@ -61,6 +70,10 @@ enum GameState {
     MainMenu,
     Playing,
 }
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
+#[system_set(base)]
+pub struct AfterPhysics;
 
 #[derive(Resource)]
 struct MusicController(Handle<AudioSink>);
@@ -72,7 +85,14 @@ const CAMERA_OFFSET: Vec3 = Vec3::new(0., 10., 6.);
 fn main() {
     let mut app = App::new();
 
-    app.add_plugins(DefaultPlugins);
+    app.add_plugins(DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(Window {
+            title: "TODO".to_string(),
+            decorations: false,
+            ..default()
+        }),
+        ..default()
+    }));
 
     #[cfg(feature = "inspector")]
     {
@@ -82,14 +102,27 @@ fn main() {
 
     app.add_state::<GameState>().add_event::<SpawnPlayerEvent>();
 
+    app.configure_set(
+        AfterPhysics
+            .after(PhysicsSet::Writeback)
+            .before(CoreSet::PostUpdate),
+    );
+
     app.add_system(setup.in_schedule(OnEnter(GameState::Playing)))
         .add_system(apply_controls.in_set(OnUpdate(GameState::Playing)))
         .add_system(update_camera.in_set(OnUpdate(GameState::Playing)))
         .add_system(cursor.in_set(OnUpdate(GameState::Playing)))
+        .add_system(item_probe.in_set(OnUpdate(GameState::Playing)))
         .add_system(spawn_player.in_set(OnUpdate(GameState::Playing)))
         .add_system(track_last_tile.in_set(OnUpdate(GameState::Playing)))
         .add_system(lava.in_set(OnUpdate(GameState::Playing)))
+        .add_system(grab.in_set(OnUpdate(GameState::Playing)))
         .add_system(build_tower.in_set(OnUpdate(GameState::Playing)))
+        .add_system(
+            reset_item_on_grab
+                .in_base_set(AfterPhysics)
+                .run_if(in_state(GameState::Playing)),
+        )
         .add_system(setup_camera.in_schedule(OnEnter(GameState::MainMenu)))
         .add_system(start_music.in_schedule(OnEnter(GameState::MainMenu)));
 
@@ -237,6 +270,42 @@ fn cursor(
     }
 }
 
+fn item_probe(
+    mut collision_events: EventReader<CollisionEvent>,
+    probe_query: Query<Entity, With<ItemProbe>>,
+    item_query: Query<Entity, With<Item>>,
+    mut selected_item_query: Query<&mut SelectedItem>,
+) {
+    for evt in collision_events.iter() {
+        match evt {
+            CollisionEvent::Started(e1, e2, _) => {
+                let is_probe = probe_query.iter_many([e1, e2]).count() > 0;
+                let is_item = item_query.iter_many([e1, e2]).count() > 0;
+
+                if is_probe && is_item {
+                    for entity in item_query.iter_many([e1, e2]) {
+                        for mut selected_item in selected_item_query.iter_mut() {
+                            selected_item.0 = Some(entity);
+                            info!("selected_item: {:?}", selected_item.0);
+                        }
+                    }
+                }
+            }
+            CollisionEvent::Stopped(e1, e2, _) => {
+                let is_probe = probe_query.iter_many([e1, e2]).count() > 0;
+                let is_item = item_query.iter_many([e1, e2]).count() > 0;
+
+                if is_probe && is_item {
+                    for mut selected_item in selected_item_query.iter_mut() {
+                        selected_item.0 = None;
+                        info!("selected_item: {:?}", selected_item.0);
+                    }
+                }
+            }
+        }
+    }
+}
+
 fn track_last_tile(
     mut collision_events: EventReader<CollisionEvent>,
     probe_query: Query<&Parent, With<TileProbe>>,
@@ -309,6 +378,7 @@ fn spawn_player(
                 ActiveEvents::COLLISION_EVENTS,
                 LastTile(event.0),
                 SelectedTile(None),
+                SelectedItem(None),
                 TnuaRapier3dSensorShape(Collider::cylinder(0.0, 0.49)),
                 TnuaPlatformerBundle::new_with_config(TnuaPlatformerConfig {
                     full_speed: 4.0,
@@ -335,8 +405,8 @@ fn spawn_player(
                     input_map: InputMap::default()
                         .insert(KeyCode::Space, Action::Jump)
                         .insert(GamepadButtonType::South, Action::Jump)
-                        .insert(KeyCode::B, Action::Build)
-                        .insert(GamepadButtonType::West, Action::Build)
+                        .insert(KeyCode::R, Action::Grab)
+                        .insert(GamepadButtonType::West, Action::Grab)
                         .insert(DualAxis::left_stick(), Action::Run)
                         .insert(
                             VirtualDPad {
@@ -375,8 +445,19 @@ fn spawn_player(
                 // probe for current tile
                 parent.spawn((
                     TileProbe,
+                    Name::new("TileProbe"),
                     SpatialBundle::default(),
                     Collider::segment(Vec3::new(0., 0., 0.), Vec3::new(0.0, -2.0, 0.)),
+                    Sensor,
+                    ActiveEvents::COLLISION_EVENTS,
+                ));
+
+                // probe for current tile
+                parent.spawn((
+                    ItemProbe,
+                    Name::new("ItemProbe"),
+                    SpatialBundle::default(),
+                    Collider::segment(Vec3::new(0., 0.0, 0.), Vec3::new(0.0, 0.0, -1.0)),
                     Sensor,
                     ActiveEvents::COLLISION_EVENTS,
                 ));
@@ -384,6 +465,7 @@ fn spawn_player(
                 // cursor
                 parent.spawn((
                     Cursor,
+                    Name::new("Cursor"),
                     PbrBundle {
                         mesh: meshes.add(Mesh::from(shape::Cube { size: 0.1 })),
                         material: materials.add(Color::rgb(0.8, 0.0, 0.0).into()),
@@ -398,24 +480,74 @@ fn spawn_player(
     }
 }
 
-fn build_tower(
-    action_state_query: Query<&ActionState<Action>, With<Player>>,
-    selected_tile_query: Query<&SelectedTile>,
-    mut spawn_tower_events: EventWriter<SpawnTowerEvent>,
+fn grab(
+    mut commands: Commands,
+    player_query: Query<(Entity, &ActionState<Action>), With<Player>>,
+    selected_item_query: Query<&SelectedItem>,
+    mut item_query: Query<&Item>,
 ) {
+    let Ok((entity, action_state)) = player_query.get_single() else {
+        return;
+    };
+
+    if !action_state.just_pressed(Action::Grab) {
+        return;
+    }
+
+    let Ok(selected_item) = selected_item_query.get_single() else {
+        return
+    };
+    let Some(selected_item) = selected_item.0 else {
+        return
+    };
+    if item_query.get_mut(selected_item).is_err() {
+        return;
+    };
+
+    commands
+        .entity(selected_item)
+        .set_parent(entity)
+        .remove::<Collider>()
+        .insert(GrabbedItem);
+}
+
+fn build_tower(
+    mut commands: Commands,
+    player_query: Query<(Entity, &Children, &ActionState<Action>), With<Player>>,
+    selected_tile_query: Query<&SelectedTile>,
+    grabbed_item_query: Query<(Entity, &Item)>,
+    mut events: EventWriter<SpawnTowerEvent>,
+) {
+    let Ok((entity, children, action_state)) = player_query.get_single() else {
+        return;
+    };
+
+    if !action_state.just_pressed(Action::Grab) {
+        return;
+    }
+
     let Ok(selected_tile) = selected_tile_query.get_single() else {
         return
     };
+
     let Some(selected_tile) = selected_tile.0 else {
         return
     };
 
-    let Ok(action_state) = action_state_query.get_single() else {
-        return;
-    };
+    for (entity, item) in grabbed_item_query.iter_many(children) {
+        if *item != Item::TowerKit {
+            continue;
+        }
 
-    if action_state.just_pressed(Action::Build) {
-        spawn_tower_events.send(SpawnTowerEvent(selected_tile));
+        commands.entity(entity).despawn_recursive();
+        events.send(SpawnTowerEvent(selected_tile))
+    }
+}
+
+fn reset_item_on_grab(mut item_query: Query<&mut Transform, Added<GrabbedItem>>) {
+    for mut transform in item_query.iter_mut() {
+        transform.translation = Vec3::new(0., -0.4, -0.75);
+        transform.rotation = Quat::IDENTITY;
     }
 }
 
