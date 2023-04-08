@@ -11,19 +11,19 @@ impl Plugin for WavePlugin {
             delay: 10.,
             num: 4,
             interval: 4.,
-            hp: 4,
+            hp: 2,
         });
         waves.waves.push(Wave {
             delay: 30.,
             num: 8,
             interval: 4.,
-            hp: 4,
+            hp: 2,
         });
         waves.waves.push(Wave {
             delay: 30.,
             num: 4,
             interval: 4.,
-            hp: 10,
+            hp: 6,
         });
         app.insert_resource(WaveState::from(&waves.waves[0]))
             .insert_resource(waves);

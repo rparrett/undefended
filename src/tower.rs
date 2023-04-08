@@ -199,7 +199,7 @@ fn spawn(mut commands: Commands, mut events: EventReader<SpawnTowerEvent>, model
                 },
                 Target(None),
                 InRange::default(),
-                Cooldown(Timer::from_seconds(1., TimerMode::Repeating)),
+                Cooldown(Timer::from_seconds(2.5, TimerMode::Repeating)),
                 TilePos(event.0),
                 Ammo::new(20),
                 RigidBody::Fixed,
