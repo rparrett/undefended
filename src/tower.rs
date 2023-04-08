@@ -4,7 +4,7 @@ use bevy_rapier3d::prelude::*;
 
 use crate::enemy::{HitPoints, PathIndex};
 use crate::loading::Sounds;
-use crate::map::PATH;
+use crate::map::{TilePos, PATH};
 use crate::settings::SfxSetting;
 use crate::{enemy::Enemy, loading::Models, map::map_to_world, GameState};
 
@@ -189,6 +189,7 @@ fn spawn(mut commands: Commands, mut events: EventReader<SpawnTowerEvent>, model
                 Target(None),
                 InRange::default(),
                 Cooldown(Timer::from_seconds(1., TimerMode::Repeating)),
+                TilePos(event.0),
                 RigidBody::Fixed,
                 Collider::cuboid(1.0, 3.0, 1.0),
                 ActiveEvents::COLLISION_EVENTS,

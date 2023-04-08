@@ -43,6 +43,8 @@ pub struct Sounds {
     pub music: Handle<AudioSource>,
     #[asset(path = "sounds/build.ogg")]
     pub build: Handle<AudioSource>,
+    #[asset(path = "sounds/bad.ogg")]
+    pub bad: Handle<AudioSource>,
 }
 
 impl Plugin for LoadingPlugin {

@@ -15,9 +15,9 @@ use loading::{LoadingPlugin, Models, Sounds};
 use main_menu::MainMenuPlugin;
 use map::{map_to_world, Floor, Item, Lava, MapPlugin, MovingFloor, TilePos, START_TILE};
 use save::SavePlugin;
-use settings::MusicSetting;
+use settings::{MusicSetting, SfxSetting};
 use starfield::StarfieldPlugin;
-use tower::{SpawnTowerEvent, TowerPlugin};
+use tower::{SpawnTowerEvent, Tower, TowerPlugin};
 
 mod enemy;
 mod loading;
@@ -515,6 +515,10 @@ fn build_tower(
     player_query: Query<(&Children, &ActionState<Action>), With<Player>>,
     selected_tile_query: Query<&SelectedTile>,
     grabbed_item_query: Query<(Entity, &Item)>,
+    invalid_pos_query: Query<&TilePos, Or<(With<MovingFloor>, With<Tower>)>>,
+    audio: Res<Audio>,
+    game_audio: Res<Sounds>,
+    audio_setting: Res<SfxSetting>,
     mut events: EventWriter<SpawnTowerEvent>,
 ) {
     let Ok((children, action_state)) = player_query.get_single() else {
@@ -535,6 +539,16 @@ fn build_tower(
 
     for (entity, item) in grabbed_item_query.iter_many(children) {
         if *item != Item::TowerKit {
+            continue;
+        }
+
+        let invalid = invalid_pos_query.iter().any(|pos| pos.0 == selected_tile);
+        if invalid {
+            audio.play_with_settings(
+                game_audio.bad.clone(),
+                PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
+            );
+
             continue;
         }
 

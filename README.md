@@ -13,7 +13,4 @@
 ## TODO
 
 - turning in place for keyboard users
-- don't allow building on moving platforms
-- don't allow building on occupied platforms
-- enemies are flying backwards
-- todo configure directional light
+- configure directional light
