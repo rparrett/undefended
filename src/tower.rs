@@ -284,6 +284,8 @@ fn laser_movement(
                 hp.current = hp.current.saturating_sub(1);
                 commands.entity(laser_entity).despawn_recursive();
             }
+        } else {
+            commands.entity(laser_entity).despawn_recursive();
         }
     }
 }
