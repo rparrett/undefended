@@ -7,19 +7,27 @@ use bevy_tnua::{
     TnuaFreeFallBehavior, TnuaPlatformerBundle, TnuaPlatformerConfig, TnuaPlatformerControls,
     TnuaPlatformerPlugin, TnuaRapier3dPlugin, TnuaRapier3dSensorShape,
 };
+use bevy_ui_navigation::{systems::InputMapping, DefaultNavigationPlugins};
 use leafwing_input_manager::prelude::*;
 
 use enemy::EnemyPlugin;
-use loading::{LoadingPlugin, Models};
+use loading::{LoadingPlugin, Models, Sounds};
+use main_menu::MainMenuPlugin;
 use map::{map_to_world, Floor, Lava, MapPlugin, MovingFloor, TilePos, START_TILE};
+use save::SavePlugin;
+use settings::MusicSetting;
 use starfield::StarfieldPlugin;
 use tower::{SpawnTowerEvent, TowerPlugin};
 
 mod enemy;
 mod loading;
+mod main_menu;
 mod map;
+mod save;
+mod settings;
 mod starfield;
 mod tower;
+mod ui;
 
 #[derive(Component)]
 struct Player;
@@ -50,8 +58,12 @@ struct SelectedTile(Option<UVec2>);
 enum GameState {
     #[default]
     Loading,
+    MainMenu,
     Playing,
 }
+
+#[derive(Resource)]
+struct MusicController(Handle<AudioSink>);
 
 struct SpawnPlayerEvent(UVec2);
 
@@ -77,19 +89,28 @@ fn main() {
         .add_system(spawn_player.in_set(OnUpdate(GameState::Playing)))
         .add_system(track_last_tile.in_set(OnUpdate(GameState::Playing)))
         .add_system(lava.in_set(OnUpdate(GameState::Playing)))
-        .add_system(build_tower.in_set(OnUpdate(GameState::Playing)));
+        .add_system(build_tower.in_set(OnUpdate(GameState::Playing)))
+        .add_system(setup_camera.in_schedule(OnEnter(GameState::MainMenu)))
+        .add_system(start_music.in_schedule(OnEnter(GameState::MainMenu)));
 
     app.add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugin(TnuaPlatformerPlugin)
         .add_plugin(TnuaRapier3dPlugin)
         .add_system(Dolly::<MainCamera>::update_active)
-        .add_plugin(InputManagerPlugin::<Action>::default());
+        .add_plugin(InputManagerPlugin::<Action>::default())
+        .insert_resource(InputMapping {
+            keyboard_navigation: true,
+            ..default()
+        })
+        .add_plugins(DefaultNavigationPlugins);
 
     app.add_plugin(LoadingPlugin)
         .add_plugin(StarfieldPlugin)
         .add_plugin(MapPlugin)
         .add_plugin(EnemyPlugin)
         .add_plugin(TowerPlugin)
+        .add_plugin(MainMenuPlugin)
+        .add_plugin(SavePlugin)
         .run();
 }
 
@@ -106,6 +127,9 @@ fn setup(mut commands: Commands, mut spawn_player_events: EventWriter<SpawnPlaye
         transform: Transform::from_rotation(Quat::from_euler(EulerRot::YXZ, -1.0, -1.0, -1.0)),
         ..default()
     });
+}
+
+fn setup_camera(mut commands: Commands) {
     // camera
     commands.spawn((
         MainCamera,
@@ -393,4 +417,18 @@ fn build_tower(
     if action_state.just_pressed(Action::Build) {
         spawn_tower_events.send(SpawnTowerEvent(selected_tile));
     }
+}
+
+fn start_music(
+    mut commands: Commands,
+    music_setting: Res<MusicSetting>,
+    audio_assets: Res<Sounds>,
+    audio_sinks: Res<Assets<AudioSink>>,
+    audio: Res<Audio>,
+) {
+    let handle = audio_sinks.get_handle(audio.play_with_settings(
+        audio_assets.music.clone(),
+        PlaybackSettings::LOOP.with_volume(**music_setting as f32 / 100.),
+    ));
+    commands.insert_resource(MusicController(handle));
 }

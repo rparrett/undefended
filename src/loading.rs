@@ -25,11 +25,27 @@ pub struct Models {
     pub player: Handle<Scene>,
 }
 
+#[derive(AssetCollection, Resource)]
+pub struct Fonts {
+    #[asset(path = "fonts/Orbitron-Medium.ttf")]
+    pub main: Handle<Font>,
+}
+
+#[derive(AssetCollection, Resource)]
+pub struct Sounds {
+    #[asset(path = "sounds/music.ogg")]
+    pub music: Handle<AudioSource>,
+    #[asset(path = "sounds/build.ogg")]
+    pub build: Handle<AudioSource>,
+}
+
 impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
         app.add_loading_state(
-            LoadingState::new(GameState::Loading).continue_to_state(GameState::Playing),
+            LoadingState::new(GameState::Loading).continue_to_state(GameState::MainMenu),
         )
-        .add_collection_to_loading_state::<_, Models>(GameState::Loading);
+        .add_collection_to_loading_state::<_, Models>(GameState::Loading)
+        .add_collection_to_loading_state::<_, Fonts>(GameState::Loading)
+        .add_collection_to_loading_state::<_, Sounds>(GameState::Loading);
     }
 }

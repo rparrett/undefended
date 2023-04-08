@@ -3,7 +3,9 @@ use bevy::{prelude::*, utils::HashSet};
 use bevy_rapier3d::prelude::*;
 
 use crate::enemy::PathIndex;
+use crate::loading::Sounds;
 use crate::map::PATH;
+use crate::settings::SfxSetting;
 use crate::{enemy::Enemy, loading::Models, map::map_to_world, GameState};
 
 #[derive(Component)]
@@ -62,7 +64,8 @@ impl Plugin for TowerPlugin {
                     .after(targeting),
             )
             .add_system(movement.in_set(OnUpdate(GameState::Playing)))
-            .add_system(laser_movement.in_set(OnUpdate(GameState::Playing)));
+            .add_system(laser_movement.in_set(OnUpdate(GameState::Playing)))
+            .add_system(build_sound.in_set(OnUpdate(GameState::Playing)));
     }
 }
 
@@ -211,6 +214,22 @@ fn spawn(mut commands: Commands, mut events: EventReader<SpawnTowerEvent>, model
                 ));
             });
     }
+}
+
+fn build_sound(
+    mut events: EventReader<SpawnTowerEvent>,
+    audio: Res<Audio>,
+    game_audio: Res<Sounds>,
+    audio_setting: Res<SfxSetting>,
+) {
+    if events.iter().count() == 0 {
+        return;
+    }
+
+    audio.play_with_settings(
+        game_audio.build.clone(),
+        PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
+    );
 }
 
 fn shooting(
