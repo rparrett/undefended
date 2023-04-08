@@ -57,10 +57,12 @@ pub struct ItemSpawner {
 }
 impl ItemSpawner {
     fn new(item: Item, secs: f32) -> Self {
-        Self {
-            item,
-            timer: Timer::new(Duration::from_secs_f32(secs), TimerMode::Once),
-        }
+        let mut timer = Timer::new(Duration::from_secs_f32(secs), TimerMode::Once);
+
+        // make the first tick finish the timer
+        timer.set_elapsed(Duration::from_secs_f32(secs - std::f32::EPSILON));
+
+        Self { item, timer }
     }
 }
 
@@ -181,10 +183,10 @@ fn spawn_map(
             ));
 
             if *col_val == 3 {
-                cmds.insert(ItemSpawner::new(Item::TowerKit, 1.0));
+                cmds.insert(ItemSpawner::new(Item::TowerKit, 30.0));
                 cmds.insert(Name::new("TowerKitSpawner"));
             } else if *col_val == 4 {
-                cmds.insert(ItemSpawner::new(Item::LaserAmmo, 1.0));
+                cmds.insert(ItemSpawner::new(Item::LaserAmmo, 2.0));
                 cmds.insert(Name::new("LaserAmmoSpawner"));
             } else {
                 cmds.insert(Name::new("Floor"));
