@@ -16,3 +16,4 @@
 - configure directional light
 - animate spawned items up from inside spawner
 - nuke LastTile if a tower is built on it
+- preserve player orientation when they fall off the world
