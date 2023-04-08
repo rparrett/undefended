@@ -26,11 +26,24 @@ pub struct PathIndex(pub usize);
 #[derive(Component)]
 pub struct Enemy;
 
+#[derive(Component)]
+pub struct HitPoints {
+    pub current: u32,
+    pub max: u32,
+}
+impl HitPoints {
+    /// Creates a new `HitPoints`, starting with full health.
+    fn new(max: u32) -> Self {
+        Self { current: max, max }
+    }
+}
+
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<EnemyTimer>()
             .add_system(spawn.in_set(OnUpdate(GameState::Playing)))
-            .add_system(movement.in_set(OnUpdate(GameState::Playing)));
+            .add_system(movement.in_set(OnUpdate(GameState::Playing)))
+            .add_system(death.in_set(OnUpdate(GameState::Playing)));
     }
 }
 
@@ -58,6 +71,7 @@ fn spawn(
         ActiveCollisionTypes::STATIC_STATIC,
         Sensor,
         PathIndex(0),
+        HitPoints::new(4),
     ));
 }
 
@@ -88,6 +102,14 @@ fn movement(
                 path_index.0 += 1;
             }
         } else {
+            commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
+fn death(mut commands: Commands, query: Query<(Entity, &HitPoints), With<Enemy>>) {
+    for (entity, hp) in query.iter() {
+        if hp.current == 0 {
             commands.entity(entity).despawn_recursive();
         }
     }

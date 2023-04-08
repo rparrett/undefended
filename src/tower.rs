@@ -2,7 +2,7 @@ use bevy::math::Vec3Swizzles;
 use bevy::{prelude::*, utils::HashSet};
 use bevy_rapier3d::prelude::*;
 
-use crate::enemy::PathIndex;
+use crate::enemy::{HitPoints, PathIndex};
 use crate::loading::Sounds;
 use crate::map::PATH;
 use crate::settings::SfxSetting;
@@ -14,10 +14,10 @@ pub struct Tower;
 #[derive(Component)]
 pub struct TowerHead;
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct Target(pub Option<Entity>);
 
-#[derive(Component, Default)]
+#[derive(Component, Debug, Default)]
 pub struct InRange(pub HashSet<Entity>);
 
 pub struct SpawnTowerEvent(pub UVec2);
@@ -148,7 +148,7 @@ fn targeting(
         if target
             .0
             .filter(|t| in_range.0.contains(t))
-            .map(|t| enemy_query.get(t))
+            .filter(|t| enemy_query.get(*t).is_ok())
             .is_some()
         {
             continue;
@@ -265,7 +265,7 @@ fn shooting(
 fn laser_movement(
     mut commands: Commands,
     mut query: Query<(Entity, &mut Transform, &Target), With<Laser>>,
-    enemy_query: Query<&Transform, Without<Laser>>,
+    mut enemy_query: Query<(&mut HitPoints, &Transform), Without<Laser>>,
     time: Res<Time>,
 ) {
     for (laser_entity, mut transform, target) in query.iter_mut() {
@@ -273,7 +273,7 @@ fn laser_movement(
             continue;
         };
 
-        if let Ok(enemy) = enemy_query.get(target_entity) {
+        if let Ok((mut hp, enemy)) = enemy_query.get_mut(target_entity) {
             let diff = enemy.translation - transform.translation;
             let dist = diff.length();
             let step = time.delta_seconds() * 8.;
@@ -281,7 +281,7 @@ fn laser_movement(
             if dist > step {
                 transform.translation += step * diff.normalize();
             } else {
-                // TODO deal damage
+                hp.current = hp.current.saturating_sub(1);
                 commands.entity(laser_entity).despawn_recursive();
             }
         }
