@@ -481,11 +481,12 @@ fn spawn_player(
 
 fn grab(
     mut commands: Commands,
-    player_query: Query<(Entity, &ActionState<Action>), With<Player>>,
+    player_query: Query<(Entity, &Children, &ActionState<Action>), With<Player>>,
+    grabbed_item_query: Query<(), With<GrabbedItem>>,
     selected_item_query: Query<&SelectedItem>,
     mut item_query: Query<&Item>,
 ) {
-    let Ok((entity, action_state)) = player_query.get_single() else {
+    let Ok((entity, children, action_state)) = player_query.get_single() else {
         return;
     };
 
@@ -502,6 +503,9 @@ fn grab(
     if item_query.get_mut(selected_item).is_err() {
         return;
     };
+    if grabbed_item_query.iter_many(children).count() > 0 {
+        return;
+    }
 
     commands
         .entity(selected_item)
