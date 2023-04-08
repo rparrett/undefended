@@ -242,7 +242,7 @@ fn shooting(
     for (mut cooldown, target, transform) in tower_query.iter_mut() {
         cooldown.0.tick(time.delta());
         if !cooldown.0.just_finished() {
-            return;
+            continue;
         }
 
         let mut laser_transform = *transform;
