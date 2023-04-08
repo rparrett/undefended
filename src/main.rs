@@ -476,7 +476,7 @@ fn spawn_player(
                         transform: Transform::from_xyz(0.0, -0.9, -1.5),
                         ..default()
                     },
-                    Collider::segment(Vec3::new(0.0, 0., 0.), Vec3::new(0.0, -1.0, 0.)),
+                    Collider::segment(Vec3::new(0.0, 0., 0.), Vec3::new(0.0, -1.5, 0.)),
                     Sensor,
                     ActiveEvents::COLLISION_EVENTS,
                 ));
