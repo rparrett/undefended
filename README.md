@@ -17,3 +17,4 @@
 - animate spawned items up from inside spawner
 - nuke LastTile if a tower is built on it
 - preserve player orientation when they fall off the world
+- if player falls with a tower kit, respawn the kit
