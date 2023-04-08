@@ -31,6 +31,18 @@ struct Laser;
 #[derive(Component)]
 struct Cooldown(Timer);
 
+#[derive(Component)]
+pub struct Ammo {
+    pub current: u32,
+    pub max: u32,
+}
+impl Ammo {
+    /// Creates a new `Ammo`, starting with full ammo.
+    fn new(max: u32) -> Self {
+        Self { current: max, max }
+    }
+}
+
 #[derive(Resource)]
 struct LaserMaterial(Handle<StandardMaterial>);
 impl FromWorld for LaserMaterial {
@@ -190,6 +202,7 @@ fn spawn(mut commands: Commands, mut events: EventReader<SpawnTowerEvent>, model
                 InRange::default(),
                 Cooldown(Timer::from_seconds(1., TimerMode::Repeating)),
                 TilePos(event.0),
+                Ammo::new(10),
                 RigidBody::Fixed,
                 Collider::cuboid(1.0, 3.0, 1.0),
                 ActiveEvents::COLLISION_EVENTS,
@@ -235,12 +248,12 @@ fn build_sound(
 
 fn shooting(
     mut commands: Commands,
-    mut tower_query: Query<(&mut Cooldown, &Target, &Transform), With<Tower>>,
+    mut tower_query: Query<(&mut Cooldown, &mut Ammo, &Target, &Transform), With<Tower>>,
     mut meshes: ResMut<Assets<Mesh>>,
     material: Res<LaserMaterial>,
     time: Res<Time>,
 ) {
-    for (mut cooldown, target, transform) in tower_query.iter_mut() {
+    for (mut cooldown, mut ammo, target, transform) in tower_query.iter_mut() {
         cooldown.0.tick(time.delta());
         if !cooldown.0.just_finished() {
             continue;
@@ -250,8 +263,14 @@ fn shooting(
             continue;
         }
 
+        if ammo.current == 0 {
+            continue;
+        }
+
         let mut laser_transform = *transform;
         laser_transform.translation.y += 1.5;
+
+        ammo.current = ammo.current.saturating_sub(1);
 
         commands.spawn((
             Laser,

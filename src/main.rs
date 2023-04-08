@@ -20,6 +20,7 @@ use save::SavePlugin;
 use settings::{MusicSetting, SfxSetting};
 use starfield::StarfieldPlugin;
 use tower::{SpawnTowerEvent, Tower, TowerPlugin};
+use ui::UiPlugin;
 
 mod enemy;
 mod loading;
@@ -148,6 +149,7 @@ fn main() {
         .add_plugin(TowerPlugin)
         .add_plugin(MainMenuPlugin)
         .add_plugin(SavePlugin)
+        .add_plugin(UiPlugin)
         .run();
 }
 
