@@ -1,4 +1,4 @@
-use bevy::{prelude::*, utils::Duration};
+use bevy::{math::Vec3Swizzles, prelude::*, utils::Duration};
 use bevy_rapier3d::prelude::*;
 
 use crate::{
@@ -75,7 +75,8 @@ fn movement(
 
             let step = 1. * time.delta_seconds();
 
-            transform.rotation = Quat::from_rotation_y(diff.angle_between(Vec3::Z));
+            let diff_xz = diff.xz();
+            transform.rotation = Quat::from_rotation_y(diff_xz.angle_between(Vec2::Y));
             transform.rotate_local_z(time.elapsed_seconds());
 
             if step < dist {
