@@ -202,7 +202,7 @@ fn spawn(mut commands: Commands, mut events: EventReader<SpawnTowerEvent>, model
                 InRange::default(),
                 Cooldown(Timer::from_seconds(1., TimerMode::Repeating)),
                 TilePos(event.0),
-                Ammo::new(10),
+                Ammo::new(20),
                 RigidBody::Fixed,
                 Collider::cuboid(1.0, 3.0, 1.0),
                 ActiveEvents::COLLISION_EVENTS,
