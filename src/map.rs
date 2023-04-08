@@ -123,6 +123,7 @@ impl Plugin for MapPlugin {
         app.add_system(spawn_map.in_schedule(OnEnter(GameState::Playing)))
             .add_system(moving_floor.in_set(OnUpdate(GameState::Playing)))
             .add_system(item_spawner.in_set(OnUpdate(GameState::Playing)))
+            .add_system(item_spawner_reset.in_set(OnUpdate(GameState::Playing)))
             .add_system(item_idle_movement.in_set(OnUpdate(GameState::Playing)));
     }
 }
@@ -322,6 +323,17 @@ fn item_spawner(
             .id();
 
         commands.entity(entity).add_child(item);
+    }
+}
+
+fn item_spawner_reset(
+    mut query: Query<(&mut ItemSpawner, &Children), Changed<Children>>,
+    item_query: Query<(), With<Item>>,
+) {
+    for (mut item_spawner, children) in query.iter_mut() {
+        if item_query.iter_many(children).count() == 0 {
+            item_spawner.timer.reset();
+        }
     }
 }
 
