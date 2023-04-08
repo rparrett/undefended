@@ -15,3 +15,4 @@
 - turning in place for keyboard users
 - configure directional light
 - animate spawned items up from inside spawner
+- nuke LastTile if a tower is built on it
