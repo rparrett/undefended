@@ -9,17 +9,6 @@ use crate::{
 
 pub struct EnemyPlugin;
 
-#[derive(Resource)]
-struct EnemyTimer(Timer);
-impl Default for EnemyTimer {
-    fn default() -> Self {
-        Self(Timer::new(
-            Duration::from_secs_f32(4.),
-            TimerMode::Repeating,
-        ))
-    }
-}
-
 #[derive(Component)]
 pub struct PathIndex(pub usize);
 
@@ -38,41 +27,37 @@ impl HitPoints {
     }
 }
 
+pub struct SpawnEnemyEvent {
+    pub hp: u32,
+}
+
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<EnemyTimer>()
+        app.add_event::<SpawnEnemyEvent>()
             .add_system(spawn.in_set(OnUpdate(GameState::Playing)))
             .add_system(movement.in_set(OnUpdate(GameState::Playing)))
             .add_system(death.in_set(OnUpdate(GameState::Playing)));
     }
 }
 
-fn spawn(
-    mut commands: Commands,
-    mut timer: ResMut<EnemyTimer>,
-    time: Res<Time>,
-    models: Res<Models>,
-) {
-    timer.0.tick(time.delta());
-    if !timer.0.just_finished() {
-        return;
+fn spawn(mut commands: Commands, models: Res<Models>, mut events: EventReader<SpawnEnemyEvent>) {
+    for event in events.iter() {
+        commands.spawn((
+            Enemy,
+            Name::new("Enemy"),
+            SceneBundle {
+                scene: models.enemy1.clone(),
+                transform: Transform::from_translation(map_to_world(PATH[0])),
+                ..default()
+            },
+            Collider::ball(0.5),
+            ActiveEvents::COLLISION_EVENTS,
+            ActiveCollisionTypes::STATIC_STATIC,
+            Sensor,
+            PathIndex(0),
+            HitPoints::new(event.hp),
+        ));
     }
-
-    commands.spawn((
-        Enemy,
-        Name::new("Enemy"),
-        SceneBundle {
-            scene: models.enemy1.clone(),
-            transform: Transform::from_translation(map_to_world(PATH[0])),
-            ..default()
-        },
-        Collider::ball(0.5),
-        ActiveEvents::COLLISION_EVENTS,
-        ActiveCollisionTypes::STATIC_STATIC,
-        Sensor,
-        PathIndex(0),
-        HitPoints::new(4),
-    ));
 }
 
 fn movement(

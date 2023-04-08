@@ -21,6 +21,7 @@ use settings::{MusicSetting, SfxSetting};
 use starfield::StarfieldPlugin;
 use tower::{Ammo, SpawnTowerEvent, Tower, TowerPlugin};
 use ui::UiPlugin;
+use waves::WavePlugin;
 
 mod enemy;
 mod loading;
@@ -31,6 +32,7 @@ mod settings;
 mod starfield;
 mod tower;
 mod ui;
+mod waves;
 
 #[derive(Component)]
 struct Player;
@@ -151,6 +153,7 @@ fn main() {
         .add_plugin(MainMenuPlugin)
         .add_plugin(SavePlugin)
         .add_plugin(UiPlugin)
+        .add_plugin(WavePlugin)
         .run();
 }
 
