@@ -225,7 +225,6 @@ fn update_camera(player_query: Query<&Transform, With<Player>>, mut rig_query: Q
     let count = player_query.iter().len();
 
     let Ok(player) = player_query.get_single() else {
-        info!("player count: {}", count);
         return;
     };
 
