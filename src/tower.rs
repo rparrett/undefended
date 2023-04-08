@@ -247,12 +247,15 @@ fn build_sound(
 
 fn shooting(
     mut commands: Commands,
-    mut tower_query: Query<(&mut Cooldown, &mut Ammo, &Target, &Transform), With<Tower>>,
+    mut tower_query: Query<(&mut Cooldown, &mut Ammo, &Target, &Children), With<Tower>>,
+    tower_head_query: Query<&GlobalTransform, With<TowerHead>>,
     mut meshes: ResMut<Assets<Mesh>>,
     material: Res<LaserMaterial>,
     time: Res<Time>,
 ) {
-    for (mut cooldown, mut ammo, target, transform) in tower_query.iter_mut() {
+    let offset = Vec3::new(0., -0.2, 0.8);
+
+    for (mut cooldown, mut ammo, target, children) in tower_query.iter_mut() {
         cooldown.0.tick(time.delta());
         if !cooldown.0.just_finished() {
             continue;
@@ -266,8 +269,17 @@ fn shooting(
             continue;
         }
 
-        let mut laser_transform = *transform;
-        laser_transform.translation.y += 1.5;
+        let Some(head) = tower_head_query.iter_many(children).next() else {
+            warn!("headless tower?");
+            continue;
+        };
+
+        let (scale, rotation, translation) = head.to_scale_rotation_translation();
+        let laser_transform = Transform {
+            scale,
+            rotation,
+            translation: translation + rotation.mul_vec3(offset),
+        };
 
         ammo.current = ammo.current.saturating_sub(1);
 
