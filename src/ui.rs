@@ -317,9 +317,3 @@ fn update_wave_stats(
         text.sections[0].value = format!("{}x {}HP", current.num, current.hp);
     }
 }
-
-fn cleanup(mut commands: Commands, query: Query<Entity, With<GameUiMarker>>) {
-    for entity in query.iter() {
-        commands.entity(entity).despawn_recursive();
-    }
-}
