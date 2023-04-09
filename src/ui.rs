@@ -1,8 +1,13 @@
 pub const FOCUSED_BUTTON: Color = Color::rgb(0.25, 0.0, 0.25);
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::Duration};
 use bevy_ui_navigation::prelude::*;
 
-use crate::{loading::Fonts, tower::Ammo, GameState, MainCamera};
+use crate::{
+    loading::Fonts,
+    tower::Ammo,
+    waves::{WaveState, Waves},
+    GameState, MainCamera,
+};
 
 pub const FOCUSED_HOVERED_BUTTON: Color = Color::rgb(0.35, 0.0, 0.35);
 pub const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
@@ -11,6 +16,7 @@ pub const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 pub const BUTTON_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
 pub const TITLE_TEXT: Color = Color::rgb(0.35, 0.0, 0.35);
 pub const CONTAINER_BACKGROUND: Color = Color::rgb(0.1, 0.1, 0.1);
+pub const OVERLAY: Color = Color::rgba(0.0, 0.0, 0.0, 0.5);
 
 #[derive(Component)]
 pub struct GameUiMarker;
@@ -21,17 +27,150 @@ pub struct FollowInWorld(Entity);
 #[derive(Component)]
 pub struct AmmoText(Entity);
 
+#[derive(Component)]
+pub struct WaveText;
+
+#[derive(Component)]
+pub struct WaveTimerText;
+
+#[derive(Component)]
+pub struct WaveStatsText;
+
 pub struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(follow.in_set(OnUpdate(GameState::Playing)))
+        app.add_system(update_waves.in_set(OnUpdate(GameState::Playing)))
+            .add_system(update_wave_timer.in_set(OnUpdate(GameState::Playing)))
+            .add_system(update_wave_stats.in_set(OnUpdate(GameState::Playing)))
+            .add_system(follow.in_set(OnUpdate(GameState::Playing)))
             .add_system(update_ammo.in_set(OnUpdate(GameState::Playing)))
             .add_system(spawn_ammo.in_set(OnUpdate(GameState::Playing)))
             .add_system(setup.in_schedule(OnExit(GameState::MainMenu)));
     }
 }
 
-fn setup() {}
+fn setup(mut commands: Commands, fonts: Res<Fonts>) {
+    let text_style = TextStyle {
+        font: fonts.main.clone(),
+        font_size: 20.,
+        color: Color::PINK,
+    };
+
+    commands
+        .spawn((
+            Name::new("WaveInfoContainer"),
+            NodeBundle {
+                style: Style {
+                    flex_direction: FlexDirection::Column,
+                    size: Size::width(Val::Px(180.)),
+                    position_type: PositionType::Absolute,
+                    position: UiRect {
+                        top: Val::Px(0.0),
+                        right: Val::Px(0.0),
+                        ..default()
+                    },
+                    padding: UiRect::all(Val::Px(5.)),
+                    ..default()
+                },
+                background_color: OVERLAY.into(),
+                ..default()
+            },
+        ))
+        .with_children(|parent| {
+            parent
+                .spawn((
+                    Name::new("WaveNumberContainer"),
+                    NodeBundle {
+                        style: Style {
+                            justify_content: JustifyContent::SpaceBetween,
+                            ..default()
+                        },
+                        ..default()
+                    },
+                ))
+                .with_children(|parent| {
+                    parent.spawn(TextBundle {
+                        text: Text::from_sections([TextSection {
+                            value: "WAVE:".to_string(),
+                            style: text_style.clone(),
+                        }]),
+                        ..default()
+                    });
+                    parent.spawn((
+                        WaveText,
+                        TextBundle {
+                            text: Text::from_sections([TextSection {
+                                value: "?".to_string(),
+                                style: text_style.clone(),
+                            }]),
+                            ..default()
+                        },
+                    ));
+                });
+
+            parent
+                .spawn((
+                    Name::new("WaveTimerContainer"),
+                    NodeBundle {
+                        style: Style {
+                            justify_content: JustifyContent::SpaceBetween,
+                            ..default()
+                        },
+                        ..default()
+                    },
+                ))
+                .with_children(|parent| {
+                    parent.spawn(TextBundle {
+                        text: Text::from_sections([TextSection {
+                            value: "NEXT:".to_string(),
+                            style: text_style.clone(),
+                        }]),
+                        ..default()
+                    });
+                    parent.spawn((
+                        WaveTimerText,
+                        TextBundle {
+                            text: Text::from_sections([TextSection {
+                                value: "?".to_string(),
+                                style: text_style.clone(),
+                            }]),
+                            ..default()
+                        },
+                    ));
+                });
+
+            parent
+                .spawn((
+                    Name::new("WaveStatsContainer"),
+                    NodeBundle {
+                        style: Style {
+                            justify_content: JustifyContent::SpaceBetween,
+                            ..default()
+                        },
+                        ..default()
+                    },
+                ))
+                .with_children(|parent| {
+                    parent.spawn(TextBundle {
+                        text: Text::from_sections([TextSection {
+                            value: "STATS:".to_string(),
+                            style: text_style.clone(),
+                        }]),
+                        ..default()
+                    });
+                    parent.spawn((
+                        WaveStatsText,
+                        TextBundle {
+                            text: Text::from_sections([TextSection {
+                                value: "?".to_string(),
+                                style: text_style.clone(),
+                            }]),
+                            ..default()
+                        },
+                    ));
+                });
+        });
+}
 
 pub fn buttons(
     mut interaction_query: Query<
@@ -140,6 +279,42 @@ fn follow(
             bottom: Val::Px(viewport.y),
             ..default()
         };
+    }
+}
+
+fn update_waves(mut query: Query<&mut Text, With<WaveText>>, waves: Res<Waves>) {
+    for mut text in query.iter_mut() {
+        let wave = if waves.current == waves.len() {
+            waves.current
+        } else {
+            waves.current + 1
+        };
+
+        text.sections[0].value = format!("{}/{}", waves.current + 1, waves.waves.len());
+    }
+}
+
+fn update_wave_timer(mut query: Query<&mut Text, With<WaveTimerText>>, wave_state: Res<WaveState>) {
+    for mut text in query.iter_mut() {
+        text.sections[0].value = if wave_state.delay_timer.remaining() == Duration::ZERO {
+            "NOW!".to_string()
+        } else {
+            format!("{:.1}", wave_state.delay_timer.remaining_secs())
+        };
+    }
+}
+
+fn update_wave_stats(
+    mut query: Query<&mut Text, With<WaveStatsText>>,
+    wave_state: Res<WaveState>,
+    waves: Res<Waves>,
+) {
+    let Some(current) = waves.current() else {
+        return
+    };
+
+    for mut text in query.iter_mut() {
+        text.sections[0].value = format!("{}x {}HP", current.num, current.hp);
     }
 }
 

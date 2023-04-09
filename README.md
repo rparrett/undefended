@@ -15,8 +15,8 @@
 - turning in place for keyboard users
 - configure directional light
 - animate spawned items up from inside spawner
-- nuke LastTile if a tower is built on it
+- !! nuke LastTile if a tower is built on it
 - preserve player orientation when they fall off the world
 - if player falls with a tower kit, respawn the kit
 - show timers over spawn points
-- show upcoming wave
+- play bad sound when attempting to place something in empty space
