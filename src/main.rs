@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments, clippy::type_complexity)]
+
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
 use bevy_dolly::prelude::*;
 #[cfg(feature = "inspector")]
