@@ -70,6 +70,10 @@ struct SelectedItem(Option<Entity>);
 #[derive(Component)]
 struct GrabbedItem;
 
+#[derive(Resource, Default, Reflect)]
+#[reflect(Resource)]
+struct Lives(u32);
+
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 enum GameState {
     #[default]
@@ -147,7 +151,9 @@ fn main() {
         })
         .add_plugins(DefaultNavigationPlugins);
 
-    app.add_plugin(LoadingPlugin)
+    app.insert_resource(Lives(3))
+        .register_type::<Lives>()
+        .add_plugin(LoadingPlugin)
         .add_plugin(StarfieldPlugin)
         .add_plugin(MapPlugin)
         .add_plugin(EnemyPlugin)

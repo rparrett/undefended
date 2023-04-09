@@ -4,7 +4,7 @@ use bevy_rapier3d::prelude::*;
 use crate::{
     loading::Models,
     map::{map_to_world, PATH},
-    GameState,
+    GameState, Lives,
 };
 
 pub struct EnemyPlugin;
@@ -64,6 +64,7 @@ fn movement(
     mut commands: Commands,
     mut query: Query<(Entity, &mut Transform, &mut PathIndex), With<Enemy>>,
     time: Res<Time>,
+    mut lives: ResMut<Lives>,
 ) {
     for (entity, mut transform, mut path_index) in query.iter_mut() {
         if let Some(next_waypoint) = PATH.get(path_index.0 + 1) {
@@ -87,6 +88,7 @@ fn movement(
                 path_index.0 += 1;
             }
         } else {
+            lives.0 = lives.0.saturating_sub(1);
             commands.entity(entity).despawn_recursive();
         }
     }

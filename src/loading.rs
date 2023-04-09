@@ -47,6 +47,12 @@ pub struct Sounds {
     pub bad: Handle<AudioSource>,
 }
 
+#[derive(AssetCollection, Resource)]
+pub struct Images {
+    #[asset(path = "images/heart.png")]
+    pub heart: Handle<Image>,
+}
+
 impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
         app.add_loading_state(
@@ -54,6 +60,7 @@ impl Plugin for LoadingPlugin {
         )
         .add_collection_to_loading_state::<_, Models>(GameState::Loading)
         .add_collection_to_loading_state::<_, Fonts>(GameState::Loading)
+        .add_collection_to_loading_state::<_, Images>(GameState::Loading)
         .add_collection_to_loading_state::<_, Sounds>(GameState::Loading);
     }
 }

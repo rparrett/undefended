@@ -3,11 +3,11 @@ use bevy::{prelude::*, utils::Duration};
 use bevy_ui_navigation::prelude::*;
 
 use crate::{
-    loading::Fonts,
+    loading::{Fonts, Images},
     map::ItemSpawner,
     tower::Ammo,
     waves::{WaveState, Waves},
-    GameState, MainCamera,
+    GameState, Lives, MainCamera,
 };
 
 pub const FOCUSED_HOVERED_BUTTON: Color = Color::rgb(0.35, 0.0, 0.35);
@@ -40,6 +40,9 @@ pub struct WaveTimerText;
 #[derive(Component)]
 pub struct WaveStatsText;
 
+#[derive(Component)]
+pub struct LivesContainer;
+
 pub struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
@@ -51,7 +54,9 @@ impl Plugin for UiPlugin {
             .add_system(spawn_ammo.in_set(OnUpdate(GameState::Playing)))
             .add_system(update_item_spawners.in_set(OnUpdate(GameState::Playing)))
             .add_system(spawn_item_spawners.in_set(OnUpdate(GameState::Playing)))
-            .add_system(setup.in_schedule(OnExit(GameState::MainMenu)));
+            .add_system(setup.in_schedule(OnExit(GameState::MainMenu)))
+            .add_system(setup_lives.in_schedule(OnExit(GameState::MainMenu)))
+            .add_system(update_lives.in_set(OnUpdate(GameState::Playing)));
     }
 }
 
@@ -176,6 +181,71 @@ fn setup(mut commands: Commands, fonts: Res<Fonts>) {
                     ));
                 });
         });
+}
+
+fn setup_lives(mut commands: Commands, lives: Res<Lives>, images: Res<Images>) {
+    commands
+        .spawn((
+            LivesContainer,
+            Name::new("LivesContainer"),
+            NodeBundle {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    position: UiRect {
+                        top: Val::Px(0.0),
+                        left: Val::Px(0.0),
+                        ..default()
+                    },
+                    padding: UiRect::all(Val::Px(5.)),
+                    ..default()
+                },
+                background_color: OVERLAY.into(),
+                ..default()
+            },
+        ))
+        .with_children(|parent| {
+            for i in 0..lives.0 {
+                let padding = if i + 1 == lives.0 { 0.0 } else { 5.0 };
+
+                parent.spawn(ImageBundle {
+                    image: images.heart.clone().into(),
+                    style: Style {
+                        margin: UiRect::right(Val::Px(padding)),
+                        max_size: Size {
+                            width: Val::Px(20.0),
+                            height: Val::Px(20.0),
+                        },
+                        ..default()
+                    },
+                    ..default()
+                });
+            }
+        });
+}
+
+fn update_lives(
+    lives: Res<Lives>,
+    container_query: Query<&Children, With<LivesContainer>>,
+    mut image_query: Query<&mut Style>,
+) {
+    if !lives.is_changed() {
+        return;
+    }
+
+    for children in container_query.iter() {
+        let mut i = 0;
+        for child in children {
+            if let Ok(mut style) = image_query.get_mut(*child) {
+                style.display = if i + 1 > lives.0 {
+                    Display::None
+                } else {
+                    Display::Flex
+                };
+
+                i += 1;
+            }
+        }
+    }
 }
 
 pub fn buttons(
