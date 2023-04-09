@@ -133,7 +133,7 @@ fn setup(mut commands: Commands, fonts: Res<Fonts>) {
                 .with_children(|parent| {
                     parent.spawn(TextBundle {
                         text: Text::from_sections([TextSection {
-                            value: "NEXT:".to_string(),
+                            value: "TIME:".to_string(),
                             style: text_style.clone(),
                         }]),
                         ..default()
