@@ -6,7 +6,6 @@ use crate::enemy::{HitPoints, PathIndex};
 use crate::loading::Sounds;
 use crate::map::{TilePos, PATH};
 use crate::settings::SfxSetting;
-use crate::LastTile;
 use crate::{enemy::Enemy, loading::Models, map::map_to_world, GameState};
 
 #[derive(Component)]

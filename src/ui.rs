@@ -368,11 +368,7 @@ fn update_wave_timer(mut query: Query<&mut Text, With<WaveTimerText>>, wave_stat
     }
 }
 
-fn update_wave_stats(
-    mut query: Query<&mut Text, With<WaveStatsText>>,
-    wave_state: Res<WaveState>,
-    waves: Res<Waves>,
-) {
+fn update_wave_stats(mut query: Query<&mut Text, With<WaveStatsText>>, waves: Res<Waves>) {
     let Some(current) = waves.current() else {
         return
     };
