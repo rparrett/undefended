@@ -18,3 +18,5 @@
 - nuke LastTile if a tower is built on it
 - preserve player orientation when they fall off the world
 - if player falls with a tower kit, respawn the kit
+- show timers over spawn points
+- show upcoming wave
