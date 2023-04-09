@@ -6,6 +6,7 @@ use crate::enemy::{HitPoints, PathIndex};
 use crate::loading::Sounds;
 use crate::map::{TilePos, PATH};
 use crate::settings::SfxSetting;
+use crate::LastTile;
 use crate::{enemy::Enemy, loading::Models, map::map_to_world, GameState};
 
 #[derive(Component)]
@@ -185,8 +186,6 @@ fn targeting(
 }
 
 fn spawn(mut commands: Commands, mut events: EventReader<SpawnTowerEvent>, models: Res<Models>) {
-    // TODO remove tile from LastTile
-
     for event in events.iter() {
         commands
             .spawn((

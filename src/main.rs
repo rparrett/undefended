@@ -343,7 +343,8 @@ fn lava(
     mut commands: Commands,
     mut collision_events: EventReader<CollisionEvent>,
     lava_query: Query<&Lava>,
-    player_query: Query<&LastTile, With<Player>>,
+    player_query: Query<(Entity, &LastTile), With<Player>>,
+    tower_query: Query<&TilePos, With<Tower>>,
     mut spawn_player_events: EventWriter<SpawnPlayerEvent>,
 ) {
     for evt in collision_events.iter() {
@@ -352,13 +353,15 @@ fn lava(
             let is_player = player_query.iter_many([e1, e2]).count() > 0;
 
             if is_lava && is_player {
-                if let Ok(last_tile) = player_query.get(*e1) {
-                    commands.entity(*e1).despawn_recursive();
-                    spawn_player_events.send(SpawnPlayerEvent(last_tile.0));
-                }
-                if let Ok(last_tile) = player_query.get(*e2) {
-                    commands.entity(*e2).despawn_recursive();
-                    spawn_player_events.send(SpawnPlayerEvent(last_tile.0));
+                for (entity, last_tile) in player_query.iter_many([e1, e2]) {
+                    let pos = if tower_query.iter().any(|pos| pos.0 == last_tile.0) {
+                        START_TILE
+                    } else {
+                        last_tile.0
+                    };
+
+                    commands.entity(entity).despawn_recursive();
+                    spawn_player_events.send(SpawnPlayerEvent(pos));
                 }
             }
         }
