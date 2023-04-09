@@ -284,13 +284,13 @@ fn follow(
 
 fn update_waves(mut query: Query<&mut Text, With<WaveText>>, waves: Res<Waves>) {
     for mut text in query.iter_mut() {
-        let wave = if waves.current == waves.len() {
+        let wave = if waves.current == waves.waves.len() {
             waves.current
         } else {
             waves.current + 1
         };
 
-        text.sections[0].value = format!("{}/{}", waves.current + 1, waves.waves.len());
+        text.sections[0].value = format!("{}/{}", wave, waves.waves.len());
     }
 }
 
