@@ -20,3 +20,5 @@
 - if player falls with a tower kit, respawn the kit
 - show timers over spawn points
 - play bad sound when attempting to place something in empty space
+- !! add a win/loss condition
+- !! set up GH/CI
