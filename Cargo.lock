@@ -721,24 +721,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_jam_3"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy-inspector-egui",
- "bevy-tnua",
- "bevy-ui-navigation",
- "bevy_asset_loader",
- "bevy_dolly",
- "bevy_rapier3d",
- "leafwing-input-manager",
- "rand",
- "ron",
- "serde",
- "web-sys",
-]
-
-[[package]]
 name = "bevy_log"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3584,6 +3566,24 @@ name = "typenum"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "497961ef93d974e23eb6f433eb5fe1b7930b659f06d12dec6fc44a8f554c0bba"
+
+[[package]]
+name = "undefended"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy-inspector-egui",
+ "bevy-tnua",
+ "bevy-ui-navigation",
+ "bevy_asset_loader",
+ "bevy_dolly",
+ "bevy_rapier3d",
+ "leafwing-input-manager",
+ "rand",
+ "ron",
+ "serde",
+ "web-sys",
+]
 
 [[package]]
 name = "unicode-bidi"

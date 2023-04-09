@@ -94,7 +94,7 @@ fn main() {
 
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
-            title: "TODO".to_string(),
+            title: "UNDEFENDED!".to_string(),
             decorations: false,
             ..default()
         }),

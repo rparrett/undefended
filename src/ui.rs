@@ -9,7 +9,7 @@ pub const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 pub const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 pub const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 pub const BUTTON_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
-pub const TITLE_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
+pub const TITLE_TEXT: Color = Color::rgb(0.35, 0.0, 0.35);
 pub const CONTAINER_BACKGROUND: Color = Color::rgb(0.1, 0.1, 0.1);
 
 #[derive(Component)]

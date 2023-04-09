@@ -88,7 +88,7 @@ fn setup_menu(
 
     let title = commands
         .spawn(
-            TextBundle::from_section("TODO", title_text_style).with_style(Style {
+            TextBundle::from_section("UNDEFENDED!", title_text_style).with_style(Style {
                 margin: UiRect {
                     bottom: Val::Px(10.0),
                     ..default()
