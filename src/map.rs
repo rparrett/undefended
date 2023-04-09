@@ -52,8 +52,8 @@ pub struct Lava;
 
 #[derive(Component)]
 pub struct ItemSpawner {
-    item: Item,
-    timer: Timer,
+    pub item: Item,
+    pub timer: Timer,
 }
 impl ItemSpawner {
     fn new(item: Item, secs: f32) -> Self {

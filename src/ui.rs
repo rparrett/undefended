@@ -4,6 +4,7 @@ use bevy_ui_navigation::prelude::*;
 
 use crate::{
     loading::Fonts,
+    map::ItemSpawner,
     tower::Ammo,
     waves::{WaveState, Waves},
     GameState, MainCamera,
@@ -28,6 +29,9 @@ pub struct FollowInWorld(Entity);
 pub struct AmmoText(Entity);
 
 #[derive(Component)]
+pub struct ItemSpawnerText(Entity);
+
+#[derive(Component)]
 pub struct WaveText;
 
 #[derive(Component)]
@@ -45,6 +49,8 @@ impl Plugin for UiPlugin {
             .add_system(follow.in_set(OnUpdate(GameState::Playing)))
             .add_system(update_ammo.in_set(OnUpdate(GameState::Playing)))
             .add_system(spawn_ammo.in_set(OnUpdate(GameState::Playing)))
+            .add_system(update_item_spawners.in_set(OnUpdate(GameState::Playing)))
+            .add_system(spawn_item_spawners.in_set(OnUpdate(GameState::Playing)))
             .add_system(setup.in_schedule(OnExit(GameState::MainMenu)));
     }
 }
@@ -253,6 +259,64 @@ fn update_ammo(mut query: Query<(&mut Text, &AmmoText)>, ammo_query: Query<&Ammo
         }
 
         text.sections[0].value = format!("{}/{}", ammo.current, ammo.max);
+    }
+}
+
+fn spawn_item_spawners(
+    mut commands: Commands,
+    query: Query<Entity, Added<ItemSpawner>>,
+    fonts: Res<Fonts>,
+) {
+    for entity in query.iter() {
+        commands
+            .spawn((
+                Name::new("ItemSpawnerDisplay"),
+                NodeBundle {
+                    style: Style {
+                        position_type: PositionType::Absolute,
+                        size: Size::new(Val::Px(100.), Val::Px(20.)),
+                        justify_content: JustifyContent::Center,
+                        ..default()
+                    },
+                    ..default()
+                },
+                FollowInWorld(entity),
+            ))
+            .with_children(|parent| {
+                parent.spawn((
+                    ItemSpawnerText(entity),
+                    TextBundle {
+                        text: Text::from_section(
+                            "?".to_string(),
+                            TextStyle {
+                                font: fonts.main.clone(),
+                                font_size: 20.,
+                                color: Color::YELLOW,
+                            },
+                        ),
+                        ..default()
+                    },
+                ));
+            });
+    }
+}
+
+fn update_item_spawners(
+    mut query: Query<(&mut Text, &ItemSpawnerText)>,
+    item_spawner_query: Query<&ItemSpawner, Changed<ItemSpawner>>,
+) {
+    for (mut text, entity) in query.iter_mut() {
+        let Ok(item_spawner) = item_spawner_query.get(entity.0) else {
+            continue
+        };
+
+        if item_spawner.timer.remaining() == Duration::ZERO {
+            text.sections[0].style.color = Color::NONE;
+        } else {
+            text.sections[0].style.color = Color::PINK;
+        }
+
+        text.sections[0].value = format!("0:{:0>2.0}", item_spawner.timer.remaining_secs());
     }
 }
 
