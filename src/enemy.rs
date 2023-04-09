@@ -1,4 +1,4 @@
-use bevy::{math::Vec3Swizzles, prelude::*, utils::Duration};
+use bevy::{math::Vec3Swizzles, prelude::*};
 use bevy_rapier3d::prelude::*;
 
 use crate::{
