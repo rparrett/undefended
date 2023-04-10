@@ -403,8 +403,6 @@ fn lava(
 fn spawn_player(
     mut commands: Commands,
     mut events: EventReader<SpawnPlayerEvent>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
     models: Res<Models>,
 ) {
     for event in events.iter() {
