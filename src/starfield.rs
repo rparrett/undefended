@@ -6,7 +6,7 @@ use bevy::{
     window::PrimaryWindow,
 };
 
-use crate::{GameState, Player};
+use crate::{GameState, Persist, Player};
 
 pub struct StarfieldPlugin;
 #[derive(Component)]
@@ -15,7 +15,7 @@ struct Starfield;
 impl Plugin for StarfieldPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(Material2dPlugin::<StarfieldMaterial>::default())
-            .add_system(setup.in_schedule(OnEnter(GameState::MainMenu)))
+            .add_system(setup.in_schedule(OnExit(GameState::Loading)))
             .add_system(move_starfield.in_set(OnUpdate(GameState::Playing)));
     }
 }
@@ -28,13 +28,16 @@ fn setup(
 ) {
     let window = windows.single();
 
-    commands.spawn(Camera2dBundle {
-        camera: Camera {
-            order: -1,
+    commands.spawn((
+        Camera2dBundle {
+            camera: Camera {
+                order: -1,
+                ..default()
+            },
             ..default()
         },
-        ..default()
-    });
+        Persist,
+    ));
 
     commands.spawn((
         MaterialMesh2dBundle {
@@ -46,6 +49,7 @@ fn setup(
             ..default()
         },
         Starfield,
+        Persist,
     ));
 
     info!("spawning starfield");

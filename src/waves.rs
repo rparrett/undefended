@@ -8,7 +8,7 @@ impl Plugin for WavePlugin {
     fn build(&self, app: &mut App) {
         let mut waves = Waves::default();
         waves.waves.push(Wave {
-            delay: 10.,
+            delay: 15.,
             num: 4,
             interval: 4.,
             hp: 2,
@@ -70,7 +70,8 @@ impl Plugin for WavePlugin {
         app.insert_resource(WaveState::from(&waves.waves[0]))
             .insert_resource(waves);
 
-        app.add_system(spawn_enemies.in_set(OnUpdate(GameState::Playing)));
+        app.add_system(spawn_enemies.in_set(OnUpdate(GameState::Playing)))
+            .add_system(reset.in_schedule(OnExit(GameState::GameOver)));
     }
 }
 
@@ -153,4 +154,9 @@ pub fn spawn_enemies(
             commands.insert_resource(WaveState::from(next));
         }
     }
+}
+
+fn reset(mut commands: Commands, mut waves: ResMut<Waves>) {
+    commands.insert_resource(WaveState::from(&waves.waves[0]));
+    waves.current = 0;
 }

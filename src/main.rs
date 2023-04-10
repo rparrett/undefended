@@ -10,9 +10,10 @@ use bevy_tnua::{
     TnuaPlatformerPlugin, TnuaRapier3dPlugin, TnuaRapier3dSensorShape,
 };
 use bevy_ui_navigation::{systems::InputMapping, DefaultNavigationPlugins};
+use game_over::GameOverPlugin;
 use leafwing_input_manager::prelude::*;
 
-use enemy::EnemyPlugin;
+use enemy::{Enemy, EnemyPlugin};
 use loading::{LoadingPlugin, Models, Sounds};
 use main_menu::MainMenuPlugin;
 use map::{
@@ -23,9 +24,10 @@ use settings::{MusicSetting, SfxSetting};
 use starfield::StarfieldPlugin;
 use tower::{Ammo, SpawnTowerEvent, Tower, TowerPlugin};
 use ui::UiPlugin;
-use waves::WavePlugin;
+use waves::{WavePlugin, WaveState, Waves};
 
 mod enemy;
+mod game_over;
 mod loading;
 mod main_menu;
 mod map;
@@ -70,9 +72,14 @@ struct SelectedItem(Option<Entity>);
 #[derive(Component)]
 struct GrabbedItem;
 
-#[derive(Resource, Default, Reflect)]
+#[derive(Resource, Reflect)]
 #[reflect(Resource)]
 struct Lives(u32);
+impl Default for Lives {
+    fn default() -> Self {
+        Self(3)
+    }
+}
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 enum GameState {
@@ -80,6 +87,7 @@ enum GameState {
     Loading,
     MainMenu,
     Playing,
+    GameOver,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
@@ -90,6 +98,12 @@ pub struct AfterPhysics;
 struct MusicController(Handle<AudioSink>);
 
 struct SpawnPlayerEvent(UVec2);
+
+#[derive(Resource, Default)]
+struct Won(bool);
+
+#[derive(Component)]
+struct Persist;
 
 const CAMERA_OFFSET: Vec3 = Vec3::new(0., 10., 6.);
 
@@ -137,8 +151,10 @@ fn main() {
                 .in_base_set(AfterPhysics)
                 .run_if(in_state(GameState::Playing)),
         )
-        .add_system(setup_camera.in_schedule(OnEnter(GameState::MainMenu)))
-        .add_system(start_music.in_schedule(OnEnter(GameState::MainMenu)));
+        .add_system(game_over.in_set(OnUpdate(GameState::Playing)))
+        .add_system(setup_camera.in_schedule(OnExit(GameState::Loading)))
+        .add_system(start_music.in_schedule(OnExit(GameState::Loading)))
+        .add_system(reset.in_schedule(OnExit(GameState::GameOver)));
 
     app.add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugin(TnuaPlatformerPlugin)
@@ -151,8 +167,9 @@ fn main() {
         })
         .add_plugins(DefaultNavigationPlugins);
 
-    app.insert_resource(Lives(3))
+    app.init_resource::<Lives>()
         .register_type::<Lives>()
+        .init_resource::<Won>()
         .add_plugin(LoadingPlugin)
         .add_plugin(StarfieldPlugin)
         .add_plugin(MapPlugin)
@@ -162,6 +179,7 @@ fn main() {
         .add_plugin(SavePlugin)
         .add_plugin(UiPlugin)
         .add_plugin(WavePlugin)
+        .add_plugin(GameOverPlugin)
         .run();
 }
 
@@ -203,6 +221,7 @@ fn setup_camera(mut commands: Commands) {
             },
             ..default()
         },
+        Persist,
     ));
 }
 
@@ -654,4 +673,54 @@ fn start_music(
         PlaybackSettings::LOOP.with_volume(**music_setting as f32 / 100.),
     ));
     commands.insert_resource(MusicController(handle));
+}
+
+fn game_over(
+    mut commands: Commands,
+    lives: Res<Lives>,
+    waves: Res<Waves>,
+    wave_state: Res<WaveState>,
+    enemies: Query<(), With<Enemy>>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
+    if waves.current().is_none() && wave_state.remaining == 0 && enemies.iter().len() == 0 {
+        commands.insert_resource(Won(true));
+        next_state.set(GameState::GameOver);
+    }
+
+    if lives.0 == 0 {
+        commands.insert_resource(Won(false));
+        next_state.set(GameState::GameOver);
+    }
+}
+
+fn reset(
+    mut commands: Commands,
+    roots_query: Query<
+        Entity,
+        (
+            Without<Window>,
+            Without<Persist>,
+            With<Children>,
+            Without<Parent>,
+        ),
+    >,
+    orphans_query: Query<
+        Entity,
+        (
+            Without<Window>,
+            Without<Persist>,
+            Without<Children>,
+            Without<Parent>,
+        ),
+    >,
+) {
+    for entity in roots_query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+    for entity in orphans_query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+
+    commands.insert_resource(Lives::default());
 }
