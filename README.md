@@ -1,6 +1,6 @@
 # UNDEFENDED
 
-For Bevy Jam #3. [v0.1.3](https://github.com/rparrett/combine-racers/tree/v0.1.3) is the version that was submitted.
+For Bevy Jam #3. [v0.1.4](https://github.com/rparrett/combine-racers/tree/v0.1.4) is the version that was submitted.
 
 [Play on itch.io](https://euclidean-whale.itch.io/undefended)
 
