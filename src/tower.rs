@@ -77,7 +77,8 @@ impl Plugin for TowerPlugin {
             )
             .add_system(movement.in_set(OnUpdate(GameState::Playing)))
             .add_system(laser_movement.in_set(OnUpdate(GameState::Playing)))
-            .add_system(build_sound.in_set(OnUpdate(GameState::Playing)));
+            .add_system(build_sound.in_set(OnUpdate(GameState::Playing)))
+            .add_system(laser_sound.in_set(OnUpdate(GameState::Playing)));
     }
 }
 
@@ -319,6 +320,22 @@ fn laser_movement(
             }
         } else {
             commands.entity(laser_entity).despawn_recursive();
+        }
+    }
+}
+
+fn laser_sound(
+    query: Query<&Ammo, Changed<Ammo>>,
+    audio: Res<Audio>,
+    game_audio: Res<Sounds>,
+    audio_setting: Res<SfxSetting>,
+) {
+    for ammo in query.iter() {
+        if ammo.current == 0 {
+            audio.play_with_settings(
+                game_audio.powerdown.clone(),
+                PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
+            );
         }
     }
 }

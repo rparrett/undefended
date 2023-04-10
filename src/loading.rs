@@ -45,6 +45,10 @@ pub struct Sounds {
     pub build: Handle<AudioSource>,
     #[asset(path = "sounds/bad.ogg")]
     pub bad: Handle<AudioSource>,
+    #[asset(path = "sounds/feed.ogg")]
+    pub feed: Handle<AudioSource>,
+    #[asset(path = "sounds/powerdown.ogg")]
+    pub powerdown: Handle<AudioSource>,
 }
 
 #[derive(AssetCollection, Resource)]

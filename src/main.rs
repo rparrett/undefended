@@ -644,6 +644,11 @@ fn feed_tower(
 
         ammo.current = ammo.max;
 
+        audio.play_with_settings(
+            game_audio.feed.clone(),
+            PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
+        );
+
         commands.entity(entity).despawn_recursive();
     }
 }
