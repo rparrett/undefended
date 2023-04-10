@@ -25,7 +25,6 @@ All other assets are original creations by me for this project.
 ## TODO
 
 - turning in place for keyboard users
-- configure directional light
 - animate spawned items up from inside spawner
 - preserve player orientation when they fall off the world
 - if player falls with a tower kit, respawn the kit

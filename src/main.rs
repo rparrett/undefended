@@ -1,6 +1,8 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
-use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
+use bevy::{
+    core_pipeline::clear_color::ClearColorConfig, pbr::CascadeShadowConfigBuilder, prelude::*,
+};
 use bevy_dolly::prelude::*;
 #[cfg(feature = "inspector")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -194,6 +196,12 @@ fn setup(mut commands: Commands, mut spawn_player_events: EventWriter<SpawnPlaye
             ..default()
         },
         transform: Transform::from_rotation(Quat::from_euler(EulerRot::YXZ, -1.0, -1.0, -1.0)),
+        cascade_shadow_config: CascadeShadowConfigBuilder {
+            first_cascade_far_bound: 4.0,
+            maximum_distance: 20.0,
+            ..default()
+        }
+        .into(),
         ..default()
     });
 }
