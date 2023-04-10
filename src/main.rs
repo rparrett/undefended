@@ -510,12 +510,7 @@ fn spawn_player(
                 parent.spawn((
                     Cursor,
                     Name::new("Cursor"),
-                    PbrBundle {
-                        mesh: meshes.add(Mesh::from(shape::Cube { size: 0.1 })),
-                        material: materials.add(Color::rgb(0.8, 0.0, 0.0).into()),
-                        transform: Transform::from_xyz(0.0, -0.9, -1.5),
-                        ..default()
-                    },
+                    SpatialBundle::from_transform(Transform::from_xyz(0.0, -0.9, -1.5)),
                     Collider::segment(Vec3::new(0.0, 0., 0.), Vec3::new(0.0, -1.5, 0.)),
                     Sensor,
                     ActiveEvents::COLLISION_EVENTS,
