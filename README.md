@@ -1,6 +1,6 @@
 # UNDEFENDED
 
-For Bevy Jam #3. TODO is the version that was submitted.
+For Bevy Jam #3. [v0.1.2](https://github.com/rparrett/combine-racers/tree/v0.1.2) is the version that was submitted.
 
 [Play on itch.io](https://euclidean-whale.itch.io/undefended)
 
