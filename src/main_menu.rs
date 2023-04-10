@@ -71,7 +71,7 @@ fn setup_menu(
     };
     let subtitle_text_style = TextStyle {
         font: fonts.main.clone(),
-        font_size: 40.0,
+        font_size: 30.0,
         color: TITLE_TEXT,
     };
 
@@ -122,7 +122,7 @@ fn setup_menu(
 
     let audio_settings_title = commands
         .spawn(
-            TextBundle::from_section("AUDIO", subtitle_text_style.clone()).with_style(Style {
+            TextBundle::from_section("- AUDIO -", subtitle_text_style.clone()).with_style(Style {
                 margin: UiRect::all(Val::Px(10.0)),
                 ..default()
             }),
@@ -131,7 +131,7 @@ fn setup_menu(
 
     let difficulty_title = commands
         .spawn(
-            TextBundle::from_section("DIFFICULTY", subtitle_text_style).with_style(Style {
+            TextBundle::from_section("- DIFFICULTY -", subtitle_text_style).with_style(Style {
                 margin: UiRect::all(Val::Px(10.0)),
                 ..default()
             }),
@@ -205,31 +205,88 @@ fn setup_menu(
         music_button,
     ]);
 
-    commands.spawn((
-        NodeBundle {
-            style: Style {
-                position_type: PositionType::Absolute,
-                position: UiRect {
-                    bottom: Val::Px(40.),
-                    ..default()
+    commands
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    position: UiRect {
+                        bottom: Val::Px(35.),
+                        ..default()
+                    },
+                    margin: UiRect {
+                        left: Val::Auto,
+                        right: Val::Auto,
+                        ..default()
+                    },
+                    size: Size {
+                        width: Val::Percent(100.),
+                        ..default()
+                    },
+                    gap: Size::width(Val::Px(10.)),
+                    justify_content: JustifyContent::Center,
+                    ..Default::default()
                 },
-                margin: UiRect {
-                    left: Val::Auto,
-                    right: Val::Auto,
-                    ..default()
-                },
-                size: Size {
-                    width: Val::Percent(100.),
-                    height: Val::Px(50.),
-                },
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..Default::default()
+                ..default()
             },
-            ..default()
-        },
-        MainMenuMarker,
-    ));
+            MainMenuMarker,
+        ))
+        .with_children(|parent| {
+            parent.spawn(TextBundle {
+                text: Text::from_section(
+                    " \nJUMP\nINTERACT\nMOVE",
+                    TextStyle {
+                        font: fonts.main.clone(),
+                        font_size: 20.0,
+                        color: Color::PINK,
+                    },
+                )
+                .with_alignment(TextAlignment::Right),
+                ..Default::default()
+            });
+            parent.spawn(TextBundle {
+                text: Text::from_sections([
+                    TextSection {
+                        value: "PAD\n".to_string(),
+                        style: TextStyle {
+                            font: fonts.main.clone(),
+                            font_size: 20.0,
+                            color: Color::PINK,
+                        },
+                    },
+                    TextSection {
+                        value: "SOUTH\nWEST\nL STICK".to_string(),
+                        style: TextStyle {
+                            font: fonts.main.clone(),
+                            font_size: 20.0,
+                            color: Color::WHITE,
+                        },
+                    },
+                ]),
+                ..Default::default()
+            });
+            parent.spawn(TextBundle {
+                text: Text::from_sections([
+                    TextSection {
+                        value: "BOARD\n".to_string(),
+                        style: TextStyle {
+                            font: fonts.main.clone(),
+                            font_size: 20.0,
+                            color: Color::PINK,
+                        },
+                    },
+                    TextSection {
+                        value: "SPACE\nR\nWASD OR ARROWS".to_string(),
+                        style: TextStyle {
+                            font: fonts.main.clone(),
+                            font_size: 20.0,
+                            color: Color::WHITE,
+                        },
+                    },
+                ]),
+                ..Default::default()
+            });
+        });
 }
 
 #[derive(Component)]
