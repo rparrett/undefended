@@ -5,6 +5,7 @@ use bevy_ui_navigation::prelude::*;
 use crate::{
     loading::{Fonts, Images},
     map::ItemSpawner,
+    settings::DifficultySetting,
     tower::Ammo,
     waves::{WaveState, Waves},
     GameState, Lives, MainCamera,
@@ -15,7 +16,7 @@ pub const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 pub const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 pub const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 pub const BUTTON_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
-pub const TITLE_TEXT: Color = Color::rgb(0.35, 0.0, 0.35);
+pub const TITLE_TEXT: Color = Color::PINK;
 pub const CONTAINER_BACKGROUND: Color = Color::rgb(0.1, 0.1, 0.1);
 pub const OVERLAY: Color = Color::rgba(0.0, 0.0, 0.0, 0.5);
 
@@ -438,12 +439,22 @@ fn update_wave_timer(mut query: Query<&mut Text, With<WaveTimerText>>, wave_stat
     }
 }
 
-fn update_wave_stats(mut query: Query<&mut Text, With<WaveStatsText>>, waves: Res<Waves>) {
+fn update_wave_stats(
+    mut query: Query<&mut Text, With<WaveStatsText>>,
+    waves: Res<Waves>,
+    difficulty: Res<DifficultySetting>,
+) {
     let Some(current) = waves.current() else {
         return
     };
 
+    let extra_hp = match *difficulty {
+        DifficultySetting::Normal => 0,
+        DifficultySetting::Hard => 1,
+        DifficultySetting::Extra => 2,
+    };
+
     for mut text in query.iter_mut() {
-        text.sections[0].value = format!("{}x {}HP", current.num, current.hp);
+        text.sections[0].value = format!("{}x {}HP", current.num, current.hp + extra_hp);
     }
 }

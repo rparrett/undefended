@@ -3,7 +3,7 @@ use bevy_ui_navigation::prelude::*;
 
 use crate::{
     loading::{Fonts, Sounds},
-    settings::{MusicSetting, SfxSetting},
+    settings::{DifficultySetting, MusicSetting, SfxSetting},
     ui::{buttons, BUTTON_TEXT, CONTAINER_BACKGROUND, NORMAL_BUTTON, TITLE_TEXT},
     GameState, MusicController,
 };
@@ -39,12 +39,18 @@ struct SfxSettingButton;
 
 #[derive(Component)]
 struct SfxSettingButtonText;
+#[derive(Component)]
+struct DifficultySettingButton;
+
+#[derive(Component)]
+struct DifficultySettingButtonText;
 
 fn setup_menu(
     mut commands: Commands,
     fonts: Res<Fonts>,
     sfx: Res<SfxSetting>,
     music: Res<MusicSetting>,
+    difficulty: Res<DifficultySetting>,
 ) {
     let button_style = Style {
         size: Size::new(Val::Px(250.0), Val::Px(45.0)),
@@ -66,7 +72,7 @@ fn setup_menu(
     let subtitle_text_style = TextStyle {
         font: fonts.main.clone(),
         font_size: 40.0,
-        color: BUTTON_TEXT,
+        color: TITLE_TEXT,
     };
 
     let container = commands
@@ -110,17 +116,45 @@ fn setup_menu(
             PlayButton,
         ))
         .with_children(|parent| {
-            parent.spawn(TextBundle::from_section("Play", button_text_style.clone()));
+            parent.spawn(TextBundle::from_section("PLAY", button_text_style.clone()));
         })
         .id();
 
     let audio_settings_title = commands
         .spawn(
-            TextBundle::from_section("Audio", subtitle_text_style).with_style(Style {
+            TextBundle::from_section("AUDIO", subtitle_text_style.clone()).with_style(Style {
                 margin: UiRect::all(Val::Px(10.0)),
                 ..default()
             }),
         )
+        .id();
+
+    let difficulty_title = commands
+        .spawn(
+            TextBundle::from_section("DIFFICULTY", subtitle_text_style).with_style(Style {
+                margin: UiRect::all(Val::Px(10.0)),
+                ..default()
+            }),
+        )
+        .id();
+
+    let difficulty_button = commands
+        .spawn((
+            ButtonBundle {
+                style: button_style.clone(),
+                background_color: NORMAL_BUTTON.into(),
+                ..default()
+            },
+            Focusable::default(),
+            MenuButton::Difficulty,
+            SfxSettingButton,
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                TextBundle::from_section(format!("{}", *difficulty), button_text_style.clone()),
+                DifficultySettingButtonText,
+            ));
+        })
         .id();
 
     let sfx_button = commands
@@ -164,6 +198,8 @@ fn setup_menu(
     commands.entity(container).push_children(&[
         title,
         play_button,
+        difficulty_title,
+        difficulty_button,
         audio_settings_title,
         sfx_button,
         music_button,
@@ -201,6 +237,7 @@ enum MenuButton {
     Play,
     Sfx,
     Music,
+    Difficulty,
 }
 
 fn button_actions(
@@ -211,8 +248,10 @@ fn button_actions(
     mut text_queries: ParamSet<(
         Query<&mut Text, With<SfxSettingButtonText>>,
         Query<&mut Text, With<MusicSettingButtonText>>,
+        Query<&mut Text, With<DifficultySettingButtonText>>,
     )>,
     mut sfx_setting: ResMut<SfxSetting>,
+    mut difficulty_setting: ResMut<DifficultySetting>,
 ) {
     for button in events.nav_iter().activated_in_query(&buttons) {
         match button {
@@ -239,6 +278,13 @@ fn button_actions(
 
                 for mut text in text_queries.p1().iter_mut() {
                     text.sections[0].value = format!("Music {}%", **music_setting);
+                }
+            }
+            MenuButton::Difficulty => {
+                *difficulty_setting = difficulty_setting.next();
+
+                for mut text in text_queries.p2().iter_mut() {
+                    text.sections[0].value = format!("{}", *difficulty_setting);
                 }
             }
         }

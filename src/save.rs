@@ -1,4 +1,4 @@
-use crate::settings::{MusicSetting, SfxSetting};
+use crate::settings::{DifficultySetting, MusicSetting, SfxSetting};
 
 use bevy::prelude::*;
 use ron::ser::PrettyConfig;
@@ -21,11 +21,13 @@ impl Plugin for SavePlugin {
 struct SaveFile {
     sfx: SfxSetting,
     music: MusicSetting,
+    difficulty: DifficultySetting,
 }
 
 pub fn load_system(mut commands: Commands) {
     commands.insert_resource(SfxSetting::default());
     commands.insert_resource(MusicSetting::default());
+    commands.insert_resource(DifficultySetting::default());
 
     #[cfg(not(target_arch = "wasm32"))]
     {
@@ -46,6 +48,7 @@ pub fn load_system(mut commands: Commands) {
 
         commands.insert_resource(save_file.sfx);
         commands.insert_resource(save_file.music);
+        commands.insert_resource(save_file.difficulty);
     }
     #[cfg(target_arch = "wasm32")]
     {
@@ -76,14 +79,20 @@ pub fn load_system(mut commands: Commands) {
 
         commands.insert_resource(save_file.sfx);
         commands.insert_resource(save_file.music);
+        commands.insert_resource(save_file.difficulty);
     }
 }
 
-pub fn save_system(sfx: Res<SfxSetting>, music: Res<MusicSetting>) {
+pub fn save_system(
+    sfx: Res<SfxSetting>,
+    music: Res<MusicSetting>,
+    difficulty: Res<DifficultySetting>,
+) {
     let sfx_changed = sfx.is_changed() && !sfx.is_added();
     let music_changed = music.is_changed() && !music.is_added();
+    let difficulty_changed = difficulty.is_changed() && !difficulty.is_added();
 
-    if !sfx_changed && !music_changed {
+    if !sfx_changed && !music_changed && !difficulty_changed {
         return;
     }
 
@@ -92,6 +101,7 @@ pub fn save_system(sfx: Res<SfxSetting>, music: Res<MusicSetting>) {
     let save_file = SaveFile {
         sfx: sfx.clone(),
         music: music.clone(),
+        difficulty: difficulty.clone(),
     };
 
     let pretty = PrettyConfig::new();

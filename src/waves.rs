@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{enemy::SpawnEnemyEvent, GameState};
+use crate::{enemy::SpawnEnemyEvent, settings::DifficultySetting, GameState};
 
 pub struct WavePlugin;
 
@@ -120,6 +120,7 @@ pub fn spawn_enemies(
     mut wave_state: ResMut<WaveState>,
     time: Res<Time>,
     mut events: EventWriter<SpawnEnemyEvent>,
+    difficulty: Res<DifficultySetting>,
 ) {
     let Some(current_wave) = waves.current() else {
         return;
@@ -135,8 +136,14 @@ pub fn spawn_enemies(
         return;
     }
 
+    let extra_hp = match *difficulty {
+        DifficultySetting::Normal => 0,
+        DifficultySetting::Hard => 1,
+        DifficultySetting::Extra => 2,
+    };
+
     events.send(SpawnEnemyEvent {
-        hp: current_wave.hp,
+        hp: current_wave.hp + extra_hp,
     });
 
     wave_state.remaining -= 1;
