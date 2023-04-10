@@ -2,8 +2,9 @@ use bevy::{math::Vec3Swizzles, prelude::*};
 use bevy_rapier3d::prelude::*;
 
 use crate::{
-    loading::Models,
+    loading::{Models, Sounds},
     map::{map_to_world, PATH},
+    settings::SfxSetting,
     GameState, Lives,
 };
 
@@ -65,6 +66,9 @@ fn movement(
     mut query: Query<(Entity, &mut Transform, &mut PathIndex), With<Enemy>>,
     time: Res<Time>,
     mut lives: ResMut<Lives>,
+    audio: Res<Audio>,
+    game_audio: Res<Sounds>,
+    audio_setting: Res<SfxSetting>,
 ) {
     for (entity, mut transform, mut path_index) in query.iter_mut() {
         if let Some(next_waypoint) = PATH.get(path_index.0 + 1) {
@@ -88,6 +92,11 @@ fn movement(
                 path_index.0 += 1;
             }
         } else {
+            audio.play_with_settings(
+                game_audio.damage.clone(),
+                PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
+            );
+
             lives.0 = lives.0.saturating_sub(1);
             commands.entity(entity).despawn_recursive();
         }
