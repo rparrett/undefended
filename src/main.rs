@@ -197,7 +197,7 @@ fn setup(mut commands: Commands, mut spawn_player_events: EventWriter<SpawnPlaye
         transform: Transform::from_rotation(Quat::from_euler(EulerRot::YXZ, -1.0, -1.0, -1.0)),
         cascade_shadow_config: CascadeShadowConfigBuilder {
             first_cascade_far_bound: 4.0,
-            maximum_distance: 20.0,
+            maximum_distance: 30.0,
             ..default()
         }
         .into(),
