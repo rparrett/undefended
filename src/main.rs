@@ -580,6 +580,11 @@ fn build_tower(
     };
 
     let Some(selected_tile) = selected_tile.0 else {
+        audio.play_with_settings(
+            game_audio.bad.clone(),
+            PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
+        );
+
         return
     };
 
@@ -626,6 +631,11 @@ fn feed_tower(
     };
 
     let Some(selected_tile) = selected_tile.0 else {
+        audio.play_with_settings(
+            game_audio.bad.clone(),
+            PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
+        );
+
         return
     };
 

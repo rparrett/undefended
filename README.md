@@ -28,4 +28,3 @@ All other assets are original creations by me for this project.
 - animate spawned items up from inside spawner
 - preserve player orientation when they fall off the world
 - if player falls with a tower kit, respawn the kit
-- play bad sound when attempting to place something in empty space
