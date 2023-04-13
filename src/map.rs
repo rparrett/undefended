@@ -1,4 +1,4 @@
-use std::{f32::consts::FRAC_PI_2, time::Duration};
+use std::{f32::consts::FRAC_PI_2, fmt::Display, time::Duration};
 
 use bevy::{prelude::*, utils::HashSet};
 use bevy_rapier3d::prelude::*;
@@ -54,6 +54,7 @@ pub struct Lava;
 pub struct ItemSpawner {
     pub item: Item,
     pub timer: Timer,
+    pub spawned: usize,
 }
 impl ItemSpawner {
     fn new(item: Item, secs: f32) -> Self {
@@ -62,7 +63,11 @@ impl ItemSpawner {
         // make the first tick finish the timer
         timer.set_elapsed(Duration::from_secs_f32(secs - std::f32::EPSILON));
 
-        Self { item, timer }
+        Self {
+            item,
+            timer,
+            spawned: 0,
+        }
     }
 }
 
@@ -70,6 +75,18 @@ impl ItemSpawner {
 pub enum Item {
     TowerKit,
     LaserAmmo,
+}
+impl Display for Item {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Item::TowerKit => "Tower Kit",
+                Item::LaserAmmo => "Ammo",
+            }
+        )
+    }
 }
 
 #[derive(Component)]
@@ -307,6 +324,8 @@ fn item_spawner(
         if !item_spawner.timer.just_finished() {
             continue;
         }
+
+        item_spawner.spawned += 1;
 
         let item = commands
             .spawn((

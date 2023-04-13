@@ -30,6 +30,5 @@ All other assets are original creations by me for this project.
 - if player falls with a tower kit, respawn the kit
 - increase item hitbox size
 - add pause/restart screen that also shows controls
-- show "tower" and "ammo" labels when not showing timers
 - rework keyboard controls?
 - preload pipelines before game starts

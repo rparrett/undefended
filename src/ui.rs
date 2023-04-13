@@ -373,21 +373,23 @@ fn spawn_item_spawners(
 }
 
 fn update_item_spawners(
-    mut query: Query<(&mut Text, &ItemSpawnerText)>,
+    mut query: Query<(&mut Text, &mut Visibility, &ItemSpawnerText)>,
     item_spawner_query: Query<&ItemSpawner, Changed<ItemSpawner>>,
 ) {
-    for (mut text, entity) in query.iter_mut() {
+    for (mut text, mut visibility, entity) in query.iter_mut() {
         let Ok(item_spawner) = item_spawner_query.get(entity.0) else {
             continue
         };
 
-        if item_spawner.timer.remaining() == Duration::ZERO {
-            text.sections[0].style.color = Color::NONE;
+        if item_spawner.timer.remaining() == Duration::ZERO && item_spawner.spawned == 1 {
+            text.sections[0].value = format!("{}", item_spawner.item);
+            *visibility = Visibility::Inherited;
+        } else if item_spawner.timer.remaining() == Duration::ZERO {
+            *visibility = Visibility::Hidden;
         } else {
-            text.sections[0].style.color = Color::PINK;
+            text.sections[0].value = format!("0:{:0>2.0}", item_spawner.timer.remaining_secs());
+            *visibility = Visibility::Inherited;
         }
-
-        text.sections[0].value = format!("0:{:0>2.0}", item_spawner.timer.remaining_secs());
     }
 }
 
