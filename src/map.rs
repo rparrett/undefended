@@ -339,7 +339,7 @@ fn item_spawner(
                     transform: Transform::from_xyz(0., 1.0, 0.),
                     ..default()
                 },
-                Collider::ball(0.5),
+                Collider::ball(0.6),
                 Sensor,
             ))
             .id();
