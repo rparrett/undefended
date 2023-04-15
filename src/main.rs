@@ -429,7 +429,7 @@ fn spawn_player(
                 TnuaRapier3dSensorShape(Collider::cylinder(0.0, 0.49)),
                 TnuaPlatformerBundle::new_with_config(TnuaPlatformerConfig {
                     full_speed: 4.3,
-                    full_jump_height: 2.5,
+                    full_jump_height: 2.0,
                     up: Vec3::Y,
                     forward: -Vec3::Z,
                     float_height: 1.0,
