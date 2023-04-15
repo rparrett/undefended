@@ -514,7 +514,7 @@ fn spawn_player(
                     Cursor,
                     Name::new("Cursor"),
                     SpatialBundle::from_transform(Transform::from_xyz(0.0, -0.9, -1.5)),
-                    Collider::segment(Vec3::new(0.0, 0., 0.), Vec3::new(0.0, -1.5, 0.)),
+                    Collider::segment(Vec3::new(0.0, 0., 0.), Vec3::new(0.0, -2.1, 0.)),
                     Sensor,
                     ActiveEvents::COLLISION_EVENTS,
                 ));
