@@ -1,9 +1,19 @@
-use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    render::{
+        render_resource::{CachedPipelineState, PipelineCache},
+        RenderApp, RenderSet,
+    },
+};
 use bevy_asset_loader::prelude::*;
+use crossbeam_channel::Receiver;
 
 use crate::GameState;
 
 pub struct LoadingPlugin;
+
+#[derive(Component)]
+pub struct PipelinesMarker;
 
 #[derive(AssetCollection, Resource)]
 pub struct Models {
@@ -59,14 +69,70 @@ pub struct Images {
     pub heart: Handle<Image>,
 }
 
+#[derive(Resource)]
+
+struct PipelineStatus(Receiver<bool>);
+
+const EXPECTED_PIPELINES: usize = 9;
+
 impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
+        let (tx, rx) = crossbeam_channel::bounded(1);
+
+        app.insert_resource(PipelineStatus(rx));
+
         app.add_loading_state(
-            LoadingState::new(GameState::Loading).continue_to_state(GameState::MainMenu),
+            LoadingState::new(GameState::Loading).continue_to_state(GameState::Pipelines),
         )
         .add_collection_to_loading_state::<_, Models>(GameState::Loading)
         .add_collection_to_loading_state::<_, Fonts>(GameState::Loading)
         .add_collection_to_loading_state::<_, Images>(GameState::Loading)
-        .add_collection_to_loading_state::<_, Sounds>(GameState::Loading);
+        .add_collection_to_loading_state::<_, Sounds>(GameState::Loading)
+        .add_system(pipelines_done.in_set(OnUpdate(GameState::Pipelines)))
+        .add_system(cleanup.in_schedule(OnExit(GameState::Pipelines)))
+        .add_system(setup_pipelines.in_schedule(OnEnter(GameState::Pipelines)));
+
+        let renderer_app = app.sub_app_mut(RenderApp);
+        let mut done = false;
+        renderer_app.add_system(
+            (move |cache: Res<PipelineCache>| {
+                let ready = cache
+                    .pipelines()
+                    .filter(|pipeline| matches!(pipeline.state, CachedPipelineState::Ok(_)))
+                    .count();
+
+                if !done {
+                    debug!("rdy: {}/{}", ready, EXPECTED_PIPELINES);
+                }
+
+                if !done && ready >= EXPECTED_PIPELINES {
+                    let _ = tx.send(true);
+                    done = true
+                }
+            })
+            .in_set(RenderSet::Cleanup),
+        );
+    }
+}
+
+fn setup_pipelines(mut commands: Commands, models: Res<Models>) {
+    commands.spawn((
+        PipelinesMarker,
+        SceneBundle {
+            scene: models.player.clone(),
+            ..default()
+        },
+    ));
+}
+
+fn pipelines_done(status: Res<PipelineStatus>, mut next_state: ResMut<NextState<GameState>>) {
+    if status.0.try_recv().unwrap_or_default() {
+        next_state.set(GameState::MainMenu);
+    }
+}
+
+fn cleanup(mut commands: Commands, query: Query<Entity, With<PipelinesMarker>>) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn_recursive();
     }
 }

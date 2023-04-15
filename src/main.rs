@@ -87,6 +87,7 @@ impl Default for Lives {
 enum GameState {
     #[default]
     Loading,
+    Pipelines,
     MainMenu,
     Playing,
     GameOver,
@@ -148,7 +149,7 @@ fn main() {
         )
         .add_system(game_over.in_set(OnUpdate(GameState::Playing)))
         .add_system(setup_camera.in_schedule(OnExit(GameState::Loading)))
-        .add_system(start_music.in_schedule(OnExit(GameState::Loading)))
+        .add_system(start_music.in_schedule(OnExit(GameState::Pipelines)))
         .add_system(reset.in_schedule(OnExit(GameState::GameOver)));
 
     app.add_plugin(RapierPhysicsPlugin::<NoUserData>::default())

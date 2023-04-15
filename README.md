@@ -29,4 +29,3 @@ All other assets are original creations by me for this project.
 - add pause/restart screen that also shows controls
 - better keyboard controls
   - turning in place?
-- preload pipelines before game starts

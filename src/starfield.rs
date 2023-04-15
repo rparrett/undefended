@@ -15,7 +15,7 @@ struct Starfield;
 impl Plugin for StarfieldPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(Material2dPlugin::<StarfieldMaterial>::default())
-            .add_system(setup.in_schedule(OnExit(GameState::Loading)))
+            .add_system(setup.in_schedule(OnEnter(GameState::Pipelines)))
             .add_system(move_starfield.in_set(OnUpdate(GameState::Playing)));
     }
 }
@@ -51,8 +51,6 @@ fn setup(
         Starfield,
         Persist,
     ));
-
-    info!("spawning starfield");
 }
 
 fn move_starfield(

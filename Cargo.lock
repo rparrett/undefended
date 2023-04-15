@@ -3603,6 +3603,7 @@ dependencies = [
  "bevy_asset_loader",
  "bevy_dolly",
  "bevy_rapier3d",
+ "crossbeam-channel",
  "leafwing-input-manager",
  "rand",
  "ron",
