@@ -381,9 +381,9 @@ fn lava(
     mut commands: Commands,
     mut collision_events: EventReader<CollisionEvent>,
     lava_query: Query<&Lava>,
-    player_query: Query<(Entity, &LastTile), With<Player>>,
+    mut player_query: Query<(&LastTile, &Children, &mut Transform), With<Player>>,
+    item_query: Query<Entity, With<Item>>,
     tower_query: Query<&TilePos, With<Tower>>,
-    mut spawn_player_events: EventWriter<SpawnPlayerEvent>,
 ) {
     for evt in collision_events.iter() {
         if let CollisionEvent::Started(e1, e2, _) = evt {
@@ -391,15 +391,20 @@ fn lava(
             let is_player = player_query.iter_many([e1, e2]).count() > 0;
 
             if is_lava && is_player {
-                for (entity, last_tile) in player_query.iter_many([e1, e2]) {
+                let mut iter = player_query.iter_many_mut([e1, e2]);
+
+                while let Some((last_tile, children, mut transform)) = iter.fetch_next() {
                     let pos = if tower_query.iter().any(|pos| pos.0 == last_tile.0) {
                         START_TILE
                     } else {
                         last_tile.0
                     };
 
-                    commands.entity(entity).despawn_recursive();
-                    spawn_player_events.send(SpawnPlayerEvent(pos));
+                    transform.translation = map_to_world(pos);
+
+                    for item_entity in item_query.iter_many(children) {
+                        commands.entity(item_entity).despawn_recursive();
+                    }
                 }
             }
         }
