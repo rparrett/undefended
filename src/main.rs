@@ -121,14 +121,6 @@ fn main() {
         ..default()
     }));
 
-    #[cfg(feature = "inspector")]
-    {
-        app.add_plugin(WorldInspectorPlugin::new());
-        app.add_plugin(RapierDebugRenderPlugin::default());
-        app.register_type::<SelectedTile>();
-        app.register_type::<SelectedItem>();
-    }
-
     app.add_state::<GameState>().add_event::<SpawnPlayerEvent>();
 
     app.configure_set(
@@ -181,8 +173,17 @@ fn main() {
         .add_plugin(SavePlugin)
         .add_plugin(UiPlugin)
         .add_plugin(WavePlugin)
-        .add_plugin(GameOverPlugin)
-        .run();
+        .add_plugin(GameOverPlugin);
+
+    #[cfg(feature = "inspector")]
+    {
+        app.add_plugin(WorldInspectorPlugin::new());
+        app.add_plugin(RapierDebugRenderPlugin::default());
+        app.register_type::<SelectedTile>();
+        app.register_type::<SelectedItem>();
+    }
+
+    app.run();
 }
 
 fn setup(mut commands: Commands, mut spawn_player_events: EventWriter<SpawnPlayerEvent>) {
@@ -540,7 +541,7 @@ fn grab(
     };
 
     // player is already holding an item
-    if grabbed_item_query.iter_many(children).count() > 0 {
+    if grabbed_item_query.iter_many(children).next().is_some() {
         audio.play_with_settings(
             game_audio.bad.clone(),
             PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
@@ -605,25 +606,20 @@ fn build_tower(
 
 fn feed_tower(
     mut commands: Commands,
-    player_query: Query<(&Children, &ActionState<Action>), With<Player>>,
-    selected_tile_query: Query<&SelectedTile>,
+    player_query: Query<(&Children, &ActionState<Action>, &SelectedTile), With<Player>>,
     grabbed_item_query: Query<(Entity, &Item)>,
     mut tower_query: Query<(&TilePos, &mut Ammo), With<Tower>>,
     audio: Res<Audio>,
     game_audio: Res<Sounds>,
     audio_setting: Res<SfxSetting>,
 ) {
-    let Ok((children, action_state)) = player_query.get_single() else {
+    let Ok((children, action_state, selected_tile)) = player_query.get_single() else {
         return;
     };
 
     if !action_state.just_pressed(Action::Grab) {
         return;
     }
-
-    let Ok(selected_tile) = selected_tile_query.get_single() else {
-        return
-    };
 
     let Some((entity, item)) = grabbed_item_query.iter_many(children).next() else {
         return;
