@@ -340,6 +340,7 @@ fn item_spawner(
                     ..default()
                 },
                 Collider::ball(0.5),
+                Sensor,
             ))
             .id();
 
