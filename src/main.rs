@@ -514,15 +514,14 @@ fn spawn_player(
 
 fn grab(
     mut commands: Commands,
-    player_query: Query<(Entity, &Children, &ActionState<Action>), With<Player>>,
+    player_query: Query<(Entity, &Children, &ActionState<Action>, &SelectedItem), With<Player>>,
     grabbed_item_query: Query<(), With<GrabbedItem>>,
-    selected_item_query: Query<&SelectedItem>,
     mut item_query: Query<&Item>,
     audio: Res<Audio>,
     game_audio: Res<Sounds>,
     audio_setting: Res<SfxSetting>,
 ) {
-    let Ok((entity, children, action_state)) = player_query.get_single() else {
+    let Ok((entity, children, action_state, selected_item)) = player_query.get_single() else {
         return;
     };
 
@@ -530,9 +529,6 @@ fn grab(
         return;
     }
 
-    let Ok(selected_item) = selected_item_query.get_single() else {
-        return
-    };
     let Some(selected_item) = selected_item.0 else {
         return
     };
