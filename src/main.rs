@@ -559,8 +559,7 @@ fn grab(
 
 fn build_tower(
     mut commands: Commands,
-    player_query: Query<(&Children, &ActionState<Action>), With<Player>>,
-    selected_tile_query: Query<&SelectedTile>,
+    player_query: Query<(&Children, &ActionState<Action>, &SelectedTile, &LastTile), With<Player>>,
     grabbed_item_query: Query<(Entity, &Item)>,
     invalid_pos_query: Query<&TilePos, Or<(With<MovingFloor>, With<Tower>, With<ItemSpawner>)>>,
     audio: Res<Audio>,
@@ -568,17 +567,13 @@ fn build_tower(
     audio_setting: Res<SfxSetting>,
     mut events: EventWriter<SpawnTowerEvent>,
 ) {
-    let Ok((children, action_state)) = player_query.get_single() else {
+    let Ok((children, action_state, selected_tile, last_tile)) = player_query.get_single() else {
         return;
     };
 
     if !action_state.just_pressed(Action::Grab) {
         return;
     }
-
-    let Ok(selected_tile) = selected_tile_query.get_single() else {
-        return
-    };
 
     let Some(selected_tile) = selected_tile.0 else {
         audio.play_with_settings(
@@ -594,7 +589,8 @@ fn build_tower(
             continue;
         }
 
-        let invalid = invalid_pos_query.iter().any(|pos| pos.0 == selected_tile);
+        let invalid = selected_tile == last_tile.0
+            || invalid_pos_query.iter().any(|pos| pos.0 == selected_tile);
         if invalid {
             audio.play_with_settings(
                 game_audio.bad.clone(),
