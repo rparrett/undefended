@@ -116,6 +116,7 @@ fn main() {
         primary_window: Some(Window {
             title: "UNDEFENDED!".to_string(),
             resizable: false,
+            canvas: Some("#bevy".to_string()),
             ..default()
         }),
         ..default()
