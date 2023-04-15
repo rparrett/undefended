@@ -253,12 +253,15 @@ fn apply_controls(
         direction += vec;
     }
 
+    let normalized = direction.normalize_or_zero();
+    let clamped = direction.clamp_length_max(1.);
+
     let jump = action_state.pressed(Action::Jump);
 
     for mut controls in query.iter_mut() {
         *controls = TnuaPlatformerControls {
-            desired_velocity: if turn_in_place { Vec3::ZERO } else { direction },
-            desired_forward: direction.normalize(),
+            desired_velocity: if turn_in_place { Vec3::ZERO } else { clamped },
+            desired_forward: normalized,
             jump: jump.then_some(1.0),
         };
     }
