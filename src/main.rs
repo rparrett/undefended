@@ -574,33 +574,33 @@ fn build_tower(
         return;
     }
 
+    let Some((entity, item)) = grabbed_item_query.iter_many(children).next() else {
+        return
+    };
+
+    if *item != Item::TowerKit {
+        return;
+    }
+
     let Some(selected_tile) = selected_tile.0 else {
         audio.play_with_settings(
             game_audio.bad.clone(),
             PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
         );
-
-        return
+        return;
     };
 
-    for (entity, item) in grabbed_item_query.iter_many(children) {
-        if *item != Item::TowerKit {
-            continue;
-        }
-
-        let invalid = invalid_pos_query.iter().any(|pos| pos.0 == selected_tile);
-        if invalid {
-            audio.play_with_settings(
-                game_audio.bad.clone(),
-                PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
-            );
-
-            continue;
-        }
-
-        commands.entity(entity).despawn_recursive();
-        events.send(SpawnTowerEvent(selected_tile))
+    let invalid = invalid_pos_query.iter().any(|pos| pos.0 == selected_tile);
+    if invalid {
+        audio.play_with_settings(
+            game_audio.bad.clone(),
+            PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
+        );
+        return;
     }
+
+    commands.entity(entity).despawn_recursive();
+    events.send(SpawnTowerEvent(selected_tile))
 }
 
 fn feed_tower(
@@ -625,37 +625,38 @@ fn feed_tower(
         return
     };
 
+    let Some((entity, item)) = grabbed_item_query.iter_many(children).next() else {
+        return;
+    };
+
+    if *item != Item::LaserAmmo {
+        return;
+    }
+
     let Some(selected_tile) = selected_tile.0 else {
         audio.play_with_settings(
             game_audio.bad.clone(),
             PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
         );
-
         return
     };
 
-    for (entity, item) in grabbed_item_query.iter_many(children) {
-        if *item != Item::LaserAmmo {
-            continue;
-        }
-
-        let Some((_, mut ammo)) = tower_query.iter_mut().find(|(pos, _)| pos.0 == selected_tile) else {
-            audio.play_with_settings(
-                game_audio.bad.clone(),
-                PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
-            );
-            continue;
-        };
-
-        ammo.current = ammo.max;
-
+    let Some((_, mut ammo)) = tower_query.iter_mut().find(|(pos, _)| pos.0 == selected_tile) else {
         audio.play_with_settings(
-            game_audio.feed.clone(),
+            game_audio.bad.clone(),
             PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
         );
+        return;
+    };
 
-        commands.entity(entity).despawn_recursive();
-    }
+    ammo.current = ammo.max;
+
+    audio.play_with_settings(
+        game_audio.feed.clone(),
+        PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
+    );
+
+    commands.entity(entity).despawn_recursive();
 }
 
 fn reset_item_on_grab(mut item_query: Query<&mut Transform, Added<GrabbedItem>>) {
