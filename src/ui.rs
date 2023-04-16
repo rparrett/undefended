@@ -18,7 +18,7 @@ pub const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 pub const BUTTON_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
 pub const TITLE_TEXT: Color = Color::PINK;
 pub const CONTAINER_BACKGROUND: Color = Color::rgb(0.1, 0.1, 0.1);
-pub const OVERLAY: Color = Color::rgba(0.0, 0.0, 0.0, 0.5);
+pub const OVERLAY: Color = Color::rgba(0.0, 0.0, 0.0, 0.6);
 
 #[derive(Component)]
 pub struct GameUiMarker;
@@ -294,6 +294,7 @@ fn spawn_ammo(
                         justify_content: JustifyContent::Center,
                         ..default()
                     },
+                    z_index: ZIndex::Global(-1),
                     ..default()
                 },
                 FollowInWorld(entity),
@@ -349,6 +350,7 @@ fn spawn_item_spawners(
                         justify_content: JustifyContent::Center,
                         ..default()
                     },
+                    z_index: ZIndex::Global(-1),
                     ..default()
                 },
                 FollowInWorld(entity),
