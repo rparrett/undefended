@@ -56,7 +56,7 @@ fn fragment(
 ) -> @location(0) vec4<f32> {
 	var finalColor: vec3<f32>;
 
-    let pos = material.pos / vec2<f32>(-1000., 1000.);
+    let pos = material.pos / vec2<f32>(-100., 100.);
     let threshold = 0.0003;
 
 	for (var i: i32 = 1; i <= 7; i = i + 1) {
