@@ -433,9 +433,15 @@ fn update_waves(mut query: Query<&mut Text, With<WaveText>>, waves: Res<Waves>) 
     }
 }
 
-fn update_wave_timer(mut query: Query<&mut Text, With<WaveTimerText>>, wave_state: Res<WaveState>) {
+fn update_wave_timer(
+    mut query: Query<&mut Text, With<WaveTimerText>>,
+    wave_state: Res<WaveState>,
+    waves: Res<Waves>,
+) {
     for mut text in query.iter_mut() {
-        text.sections[0].value = if wave_state.delay_timer.remaining() == Duration::ZERO {
+        text.sections[0].value = if waves.current == waves.waves.len() {
+            "--".to_string()
+        } else if wave_state.delay_timer.remaining() == Duration::ZERO {
             "NOW!".to_string()
         } else {
             format!("{:.1}", wave_state.delay_timer.remaining_secs())
