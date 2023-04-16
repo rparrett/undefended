@@ -29,3 +29,5 @@ All other assets are original creations by me for this project.
 - add pause/restart screen that also shows controls
 - better keyboard controls
   - turning in place?
+- make LastTile a small FIFO in case the user places a tower on their own tile and then falls
+- add loading bar for assets and pipelines
