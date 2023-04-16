@@ -191,7 +191,7 @@ fn setup_menu(
         ))
         .with_children(|parent| {
             parent.spawn((
-                TextBundle::from_section(format!("Music {}%", **music), button_text_style),
+                TextBundle::from_section(format!("MUSIC {}%", **music), button_text_style),
                 MusicSettingButtonText,
             ));
         })
@@ -336,7 +336,7 @@ fn button_actions(
                 }
 
                 for mut text in text_queries.p1().iter_mut() {
-                    text.sections[0].value = format!("Music {}%", **music_setting);
+                    text.sections[0].value = format!("MUSIC {}%", **music_setting);
                 }
             }
             MenuButton::Difficulty => {
