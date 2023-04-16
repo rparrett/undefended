@@ -334,7 +334,6 @@ fn item_probe(
                     for entity in item_query.iter_many([e1, e2]) {
                         for mut selected_item in selected_item_query.iter_mut() {
                             selected_item.0 = Some(entity);
-                            info!("selected_item: {:?}", selected_item.0);
                         }
                     }
                 }
@@ -346,7 +345,6 @@ fn item_probe(
                 if is_probe && is_item {
                     for mut selected_item in selected_item_query.iter_mut() {
                         selected_item.0 = None;
-                        info!("selected_item: {:?}", selected_item.0);
                     }
                 }
             }
