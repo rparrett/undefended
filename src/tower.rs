@@ -118,30 +118,22 @@ fn ranging(
     for evt in collision_events.iter() {
         match evt {
             CollisionEvent::Started(e1, e2, _) => {
-                let is_range_sensor = range_sensor_query.iter_many([e1, e2]).count() > 0;
-                let is_enemy = enemy_query.iter_many([e1, e2]).count() > 0;
+                let range_sensor = range_sensor_query.iter_many([e1, e2]).next();
+                let enemy = enemy_query.iter_many([e1, e2]).next();
 
-                if is_range_sensor && is_enemy {
-                    for parent in range_sensor_query.iter_many([e1, e2]) {
-                        if let Ok(mut in_range) = tower_query.get_mut(parent.get()) {
-                            for entity in enemy_query.iter_many([e1, e2]) {
-                                in_range.0.insert(entity);
-                            }
-                        }
+                if let (Some(range_sensor_entity), Some(enemy_entity)) = (range_sensor, enemy) {
+                    if let Ok(mut in_range) = tower_query.get_mut(range_sensor_entity.get()) {
+                        in_range.0.insert(enemy_entity);
                     }
                 }
             }
             CollisionEvent::Stopped(e1, e2, _) => {
-                let is_range_sensor = range_sensor_query.iter_many([e1, e2]).count() > 0;
-                let is_enemy = enemy_query.iter_many([e1, e2]).count() > 0;
+                let range_sensor = range_sensor_query.iter_many([e1, e2]).next();
+                let enemy = enemy_query.iter_many([e1, e2]).next();
 
-                if is_range_sensor && is_enemy {
-                    for parent in range_sensor_query.iter_many([e1, e2]) {
-                        if let Ok(mut in_range) = tower_query.get_mut(parent.get()) {
-                            for entity in enemy_query.iter_many([e1, e2]) {
-                                in_range.0.remove(&entity);
-                            }
-                        }
+                if let (Some(range_sensor_entity), Some(enemy_entity)) = (range_sensor, enemy) {
+                    if let Ok(mut in_range) = tower_query.get_mut(range_sensor_entity.get()) {
+                        in_range.0.remove(&enemy_entity);
                     }
                 }
             }

@@ -286,30 +286,30 @@ fn update_camera(player_query: Query<&Transform, With<Player>>, mut rig_query: Q
 
 fn cursor(
     mut collision_events: EventReader<CollisionEvent>,
-    cursor_query: Query<Entity, With<Cursor>>,
+    cursor_query: Query<&Parent, With<Cursor>>,
     floor_query: Query<(Entity, &TilePos), With<Floor>>,
     mut selected_tile_query: Query<&mut SelectedTile>,
 ) {
     for evt in collision_events.iter() {
         match evt {
             CollisionEvent::Started(e1, e2, _) => {
-                let is_cursor = cursor_query.iter_many([e1, e2]).count() > 0;
-                let is_floor = floor_query.iter_many([e1, e2]).count() > 0;
+                let cursor = cursor_query.iter_many([e1, e2]).next();
+                let floor = floor_query.iter_many([e1, e2]).next();
 
-                if is_cursor && is_floor {
-                    for (_, tile_pos) in floor_query.iter_many([e1, e2]) {
-                        for mut selected_tile in selected_tile_query.iter_mut() {
-                            selected_tile.0 = Some(tile_pos.0);
-                        }
+                if let (Some(cursor_entity), Some((_, tile_pos))) = (cursor, floor) {
+                    if let Ok(mut selected_tile) = selected_tile_query.get_mut(cursor_entity.get())
+                    {
+                        selected_tile.0 = Some(tile_pos.0);
                     }
                 }
             }
             CollisionEvent::Stopped(e1, e2, _) => {
-                let is_cursor = cursor_query.iter_many([e1, e2]).count() > 0;
-                let is_floor = floor_query.iter_many([e1, e2]).count() > 0;
+                let cursor = cursor_query.iter_many([e1, e2]).next();
+                let floor = floor_query.iter_many([e1, e2]).next();
 
-                if is_cursor && is_floor {
-                    for mut selected_tile in selected_tile_query.iter_mut() {
+                if let (Some(cursor_entity), Some(_)) = (cursor, floor) {
+                    if let Ok(mut selected_tile) = selected_tile_query.get_mut(cursor_entity.get())
+                    {
                         selected_tile.0 = None;
                     }
                 }
@@ -320,27 +320,25 @@ fn cursor(
 
 fn item_probe(
     mut collision_events: EventReader<CollisionEvent>,
-    probe_query: Query<Entity, With<ItemProbe>>,
+    probe_query: Query<&Parent, With<ItemProbe>>,
     item_query: Query<Entity, With<Item>>,
     mut selected_item_query: Query<&mut SelectedItem>,
 ) {
     for evt in collision_events.iter() {
         match evt {
             CollisionEvent::Started(e1, e2, _) => {
-                let is_probe = probe_query.iter_many([e1, e2]).count() > 0;
-                let is_item = item_query.iter_many([e1, e2]).count() > 0;
+                let probe = probe_query.iter_many([e1, e2]).next();
+                let item = item_query.iter_many([e1, e2]).next();
 
-                if is_probe && is_item {
-                    for entity in item_query.iter_many([e1, e2]) {
-                        for mut selected_item in selected_item_query.iter_mut() {
-                            selected_item.0 = Some(entity);
-                        }
+                if let (Some(probe_entity), Some(item_entity)) = (probe, item) {
+                    if let Ok(mut selected_item) = selected_item_query.get_mut(probe_entity.get()) {
+                        selected_item.0 = Some(item_entity);
                     }
                 }
             }
             CollisionEvent::Stopped(e1, e2, _) => {
-                let is_probe = probe_query.iter_many([e1, e2]).count() > 0;
-                let is_item = item_query.iter_many([e1, e2]).count() > 0;
+                let is_probe = probe_query.iter_many([e1, e2]).next().is_some();
+                let is_item = item_query.iter_many([e1, e2]).next().is_some();
 
                 if is_probe && is_item {
                     for mut selected_item in selected_item_query.iter_mut() {
@@ -360,16 +358,12 @@ fn track_last_tile(
 ) {
     for evt in collision_events.iter() {
         if let CollisionEvent::Started(e1, e2, _) = evt {
-            let is_probe = probe_query.iter_many([e1, e2]).count() > 0;
-            let is_floor = floor_query.iter_many([e1, e2]).count() > 0;
+            let probe = probe_query.iter_many([e1, e2]).next();
+            let floor = floor_query.iter_many([e1, e2]).next();
 
-            if is_probe && is_floor {
-                for parent in probe_query.iter_many([e1, e2]) {
-                    if let Ok(mut last_tile) = last_tile_query.get_mut(**parent) {
-                        for tile_pos in floor_query.iter_many([e1, e2]) {
-                            last_tile.0 = tile_pos.0;
-                        }
-                    }
+            if let (Some(probe_entity), Some(tile_pos)) = (probe, floor) {
+                if let Ok(mut last_tile) = last_tile_query.get_mut(probe_entity.get()) {
+                    last_tile.0 = tile_pos.0;
                 }
             }
         }
@@ -386,24 +380,22 @@ fn lava(
 ) {
     for evt in collision_events.iter() {
         if let CollisionEvent::Started(e1, e2, _) = evt {
-            let is_lava = lava_query.iter_many([e1, e2]).count() > 0;
-            let is_player = player_query.iter_many([e1, e2]).count() > 0;
+            let lava = lava_query.iter_many([e1, e2]).next();
+            let mut player_iter = player_query.iter_many_mut([e1, e2]);
 
-            if is_lava && is_player {
-                let mut iter = player_query.iter_many_mut([e1, e2]);
+            if let (Some(_), Some((last_tile, children, mut transform))) =
+                (lava, player_iter.fetch_next())
+            {
+                let pos = if tower_query.iter().any(|pos| pos.0 == last_tile.0) {
+                    START_TILE
+                } else {
+                    last_tile.0
+                };
 
-                while let Some((last_tile, children, mut transform)) = iter.fetch_next() {
-                    let pos = if tower_query.iter().any(|pos| pos.0 == last_tile.0) {
-                        START_TILE
-                    } else {
-                        last_tile.0
-                    };
+                transform.translation = map_to_world(pos);
 
-                    transform.translation = map_to_world(pos);
-
-                    for item_entity in item_query.iter_many(children) {
-                        commands.entity(item_entity).despawn_recursive();
-                    }
+                for item_entity in item_query.iter_many(children) {
+                    commands.entity(item_entity).despawn_recursive();
                 }
             }
         }
