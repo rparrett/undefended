@@ -1,4 +1,3 @@
-pub const FOCUSED_BUTTON: Color = Color::rgb(0.25, 0.0, 0.25);
 use bevy::{prelude::*, utils::Duration};
 use bevy_ui_navigation::prelude::*;
 
@@ -11,12 +10,15 @@ use crate::{
     GameState, Lives, MainCamera,
 };
 
-pub const FOCUSED_HOVERED_BUTTON: Color = Color::rgb(0.35, 0.0, 0.35);
+pub const FOCUSED_BUTTON: Color = Color::rgb(0.25, 0.0, 0.25);
+pub const FOCUSED_HOVERED_BUTTON: Color = Color::rgb(0.35, 0., 0.35);
 pub const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 pub const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 pub const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 pub const BUTTON_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
 pub const TITLE_TEXT: Color = Color::PINK;
+pub const UI_TEXT: Color = Color::PINK;
+pub const ALT_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
 pub const CONTAINER_BACKGROUND: Color = Color::rgb(0.1, 0.1, 0.1);
 pub const OVERLAY: Color = Color::rgba(0.0, 0.0, 0.0, 0.6);
 
@@ -65,7 +67,12 @@ fn setup(mut commands: Commands, fonts: Res<Fonts>) {
     let text_style = TextStyle {
         font: fonts.main.clone(),
         font_size: 20.,
-        color: Color::PINK,
+        color: UI_TEXT,
+    };
+    let text_style_alt = TextStyle {
+        font: fonts.main.clone(),
+        font_size: 20.,
+        color: ALT_TEXT,
     };
 
     commands
@@ -74,7 +81,7 @@ fn setup(mut commands: Commands, fonts: Res<Fonts>) {
             NodeBundle {
                 style: Style {
                     flex_direction: FlexDirection::Column,
-                    size: Size::width(Val::Px(180.)),
+                    size: Size::width(Val::Px(165.)),
                     position_type: PositionType::Absolute,
                     position: UiRect {
                         top: Val::Px(0.0),
@@ -111,10 +118,20 @@ fn setup(mut commands: Commands, fonts: Res<Fonts>) {
                     parent.spawn((
                         WaveText,
                         TextBundle {
-                            text: Text::from_sections([TextSection {
-                                value: "?".to_string(),
-                                style: text_style.clone(),
-                            }]),
+                            text: Text::from_sections([
+                                TextSection {
+                                    value: "?".to_string(),
+                                    style: text_style_alt.clone(),
+                                },
+                                TextSection {
+                                    value: "/".to_string(),
+                                    style: text_style.clone(),
+                                },
+                                TextSection {
+                                    value: "?".to_string(),
+                                    style: text_style.clone(),
+                                },
+                            ]),
                             ..default()
                         },
                     ));
@@ -142,10 +159,16 @@ fn setup(mut commands: Commands, fonts: Res<Fonts>) {
                     parent.spawn((
                         WaveTimerText,
                         TextBundle {
-                            text: Text::from_sections([TextSection {
-                                value: "?".to_string(),
-                                style: text_style.clone(),
-                            }]),
+                            text: Text::from_sections([
+                                TextSection {
+                                    value: "--".to_string(),
+                                    style: text_style_alt.clone(),
+                                },
+                                TextSection {
+                                    value: "s".to_string(),
+                                    style: text_style.clone(),
+                                },
+                            ]),
                             ..default()
                         },
                     ));
@@ -173,10 +196,24 @@ fn setup(mut commands: Commands, fonts: Res<Fonts>) {
                     parent.spawn((
                         WaveStatsText,
                         TextBundle {
-                            text: Text::from_sections([TextSection {
-                                value: "?".to_string(),
-                                style: text_style.clone(),
-                            }]),
+                            text: Text::from_sections([
+                                TextSection {
+                                    value: "?".to_string(),
+                                    style: text_style_alt.clone(),
+                                },
+                                TextSection {
+                                    value: "x ".to_string(),
+                                    style: text_style.clone(),
+                                },
+                                TextSection {
+                                    value: "?".to_string(),
+                                    style: text_style_alt.clone(),
+                                },
+                                TextSection {
+                                    value: "HP".to_string(),
+                                    style: text_style.clone(),
+                                },
+                            ]),
                             ..default()
                         },
                     ));
@@ -429,7 +466,8 @@ fn update_waves(mut query: Query<&mut Text, With<WaveText>>, waves: Res<Waves>) 
             waves.current + 1
         };
 
-        text.sections[0].value = format!("{}/{}", wave, waves.waves.len());
+        text.sections[0].value = format!("{}", wave);
+        text.sections[2].value = format!("{}", waves.waves.len());
     }
 }
 
@@ -439,12 +477,15 @@ fn update_wave_timer(
     waves: Res<Waves>,
 ) {
     for mut text in query.iter_mut() {
-        text.sections[0].value = if waves.current == waves.waves.len() {
-            "--".to_string()
+        if waves.current == waves.waves.len() {
+            text.sections[0].value = "--".to_string();
+            text.sections[1].value.clear();
         } else if wave_state.delay_timer.remaining() == Duration::ZERO {
-            "NOW!".to_string()
+            text.sections[0].value = "NOW!".to_string();
+            text.sections[1].value.clear();
         } else {
-            format!("{:.1}", wave_state.delay_timer.remaining_secs())
+            text.sections[0].value = format!("{:.1}", wave_state.delay_timer.remaining_secs());
+            text.sections[1].value = "s".to_string();
         };
     }
 }
@@ -465,6 +506,7 @@ fn update_wave_stats(
     };
 
     for mut text in query.iter_mut() {
-        text.sections[0].value = format!("{}x {}HP", current.num, current.hp + extra_hp);
+        text.sections[0].value = format!("{}", current.num);
+        text.sections[2].value = format!("{}", current.hp + extra_hp);
     }
 }

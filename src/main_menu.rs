@@ -4,7 +4,9 @@ use bevy_ui_navigation::prelude::*;
 use crate::{
     loading::{Fonts, Sounds},
     settings::{DifficultySetting, MusicSetting, SfxSetting},
-    ui::{buttons, BUTTON_TEXT, CONTAINER_BACKGROUND, NORMAL_BUTTON, TITLE_TEXT},
+    ui::{
+        buttons, ALT_TEXT, BUTTON_TEXT, CONTAINER_BACKGROUND, NORMAL_BUTTON, TITLE_TEXT, UI_TEXT,
+    },
     GameState, MusicController,
 };
 
@@ -238,7 +240,7 @@ fn setup_menu(
                     TextStyle {
                         font: fonts.main.clone(),
                         font_size: 20.0,
-                        color: Color::PINK,
+                        color: UI_TEXT,
                     },
                 )
                 .with_alignment(TextAlignment::Right),
@@ -251,7 +253,7 @@ fn setup_menu(
                         style: TextStyle {
                             font: fonts.main.clone(),
                             font_size: 20.0,
-                            color: Color::PINK,
+                            color: UI_TEXT,
                         },
                     },
                     TextSection {
@@ -259,7 +261,7 @@ fn setup_menu(
                         style: TextStyle {
                             font: fonts.main.clone(),
                             font_size: 20.0,
-                            color: Color::WHITE,
+                            color: ALT_TEXT,
                         },
                     },
                 ]),
@@ -272,7 +274,7 @@ fn setup_menu(
                         style: TextStyle {
                             font: fonts.main.clone(),
                             font_size: 20.0,
-                            color: Color::PINK,
+                            color: UI_TEXT,
                         },
                     },
                     TextSection {
@@ -280,7 +282,7 @@ fn setup_menu(
                         style: TextStyle {
                             font: fonts.main.clone(),
                             font_size: 20.0,
-                            color: Color::WHITE,
+                            color: ALT_TEXT,
                         },
                     },
                 ]),
