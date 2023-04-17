@@ -158,6 +158,7 @@ fn targeting(
             continue;
         }
 
+        // TODO we should sort by path index before distance to destination
         let mut enemies: Vec<_> = enemy_query
             .iter_many(&in_range.0)
             .map(|(entity, transform, path_index)| {
