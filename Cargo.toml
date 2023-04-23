@@ -11,8 +11,7 @@ inspector = ["bevy-inspector-egui"]
 [dependencies]
 bevy = "0.10.1"
 
-#bevy-tnua = { version = "0.2.1", features = ["rapier_3d"] }
-bevy-tnua = { git = "https://github.com/idanarye/bevy-tnua", rev = "b4b84bcac4a5560f003a130095d48850bee705dc", features = ["rapier_3d"] }
+bevy-tnua = { version = "=0.2.2", features = ["rapier_3d"] }
 bevy_rapier3d = { git = "https://github.com/dimforge/bevy_rapier", rev = "38e1b79169303c47d639d64558b7d9adeed99211", features = ["debug-render-3d"] }
 bevy_dolly = { git = "https://github.com/BlackPhlox/bevy_dolly" }
 bevy_asset_loader = "0.16.0"
