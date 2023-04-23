@@ -31,4 +31,4 @@ All other assets are original creations by me for this project.
   - turning in place?
 - make LastTile a small FIFO in case the user places a tower on their own tile and then falls
 - add loading bar for assets and pipelines
-- upgrade towers by feeding them an ammo kit?
+- upgrade towers by feeding them a tower kit?
