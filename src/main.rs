@@ -211,6 +211,10 @@ fn main() {
         let mut f = File::create("debugdump_update.dot").unwrap();
         f.write_all(dot.as_bytes()).unwrap();
 
+        let dot = bevy_mod_debugdump::schedule_graph_dot(&mut app, PostUpdate, &settings);
+        let mut f = File::create("debugdump_postupdate.dot").unwrap();
+        f.write_all(dot.as_bytes()).unwrap();
+
         return;
     }
 
