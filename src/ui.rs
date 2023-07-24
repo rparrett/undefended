@@ -451,7 +451,7 @@ fn follow(
         };
 
         style.left = Val::Px(viewport.x).try_sub(style.width / 2.).unwrap();
-        style.bottom = Val::Px(viewport.y);
+        style.top = Val::Px(viewport.y);
     }
 }
 
