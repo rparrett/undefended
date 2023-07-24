@@ -1,7 +1,8 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
 use bevy::{
-    core_pipeline::clear_color::ClearColorConfig, pbr::CascadeShadowConfigBuilder, prelude::*,
+    audio::Volume, core_pipeline::clear_color::ClearColorConfig, pbr::CascadeShadowConfigBuilder,
+    prelude::*,
 };
 use bevy_dolly::prelude::*;
 #[cfg(feature = "inspector")]
@@ -43,7 +44,7 @@ mod waves;
 #[derive(Component)]
 struct Player;
 
-#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug)]
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
 enum Action {
     Run,
     Jump,
@@ -94,12 +95,12 @@ enum GameState {
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
-#[system_set(base)]
 pub struct AfterPhysics;
 
 #[derive(Component)]
 struct MusicController;
 
+#[derive(Event)]
 struct SpawnPlayerEvent(UVec2);
 
 #[derive(Resource, Default)]
@@ -125,38 +126,42 @@ fn main() {
 
     app.add_state::<GameState>().add_event::<SpawnPlayerEvent>();
 
-    app.configure_set(
-        AfterPhysics
-            .after(PhysicsSet::Writeback)
-            .before(CoreSet::PostUpdate),
-    );
+    // TODO we may need apply_deferred somewhere in here
+    app.configure_set(Update, AfterPhysics.after(PhysicsSet::Writeback));
 
-    app.add_system(setup.in_schedule(OnEnter(GameState::Playing)))
-        .add_system(apply_controls.in_set(OnUpdate(GameState::Playing)))
-        .add_system(update_camera.in_set(OnUpdate(GameState::Playing)))
-        .add_system(cursor.in_set(OnUpdate(GameState::Playing)))
-        .add_system(item_probe.in_set(OnUpdate(GameState::Playing)))
-        .add_system(spawn_player.in_set(OnUpdate(GameState::Playing)))
-        .add_system(track_last_tile.in_set(OnUpdate(GameState::Playing)))
-        .add_system(lava.in_set(OnUpdate(GameState::Playing)))
-        .add_system(grab.in_set(OnUpdate(GameState::Playing)))
-        .add_system(build_tower.in_set(OnUpdate(GameState::Playing)))
-        .add_system(feed_tower.in_set(OnUpdate(GameState::Playing)))
-        .add_system(
+    app.add_systems(OnEnter(GameState::Playing), setup)
+        .add_systems(
+            Update,
+            (
+                apply_controls,
+                update_camera,
+                cursor,
+                item_probe,
+                spawn_player,
+                track_last_tile,
+                lava,
+                grab,
+                build_tower,
+                feed_tower,
+                game_over,
+            )
+                .distributive_run_if(in_state(GameState::Playing)),
+        )
+        .add_systems(
+            Update,
             reset_item_on_grab
-                .in_base_set(AfterPhysics)
+                .in_set(AfterPhysics)
                 .run_if(in_state(GameState::Playing)),
         )
-        .add_system(game_over.in_set(OnUpdate(GameState::Playing)))
-        .add_system(setup_camera.in_schedule(OnExit(GameState::Loading)))
-        .add_system(start_music.in_schedule(OnExit(GameState::Pipelines)))
-        .add_system(reset.in_schedule(OnExit(GameState::GameOver)));
+        .add_systems(OnExit(GameState::Loading), setup_camera)
+        .add_systems(OnExit(GameState::Pipelines), start_music)
+        .add_systems(OnExit(GameState::GameOver), reset);
 
-    app.add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
-        .add_plugin(TnuaPlatformerPlugin)
-        .add_plugin(TnuaRapier3dPlugin)
-        .add_system(Dolly::<MainCamera>::update_active)
-        .add_plugin(InputManagerPlugin::<Action>::default())
+    app.add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
+        .add_plugins(TnuaPlatformerPlugin)
+        .add_plugins(TnuaRapier3dPlugin)
+        .add_systems(Update, Dolly::<MainCamera>::update_active)
+        .add_plugins(InputManagerPlugin::<Action>::default())
         .insert_resource(InputMapping {
             keyboard_navigation: true,
             ..default()
@@ -166,16 +171,16 @@ fn main() {
     app.init_resource::<Lives>()
         .register_type::<Lives>()
         .init_resource::<Won>()
-        .add_plugin(LoadingPlugin)
-        .add_plugin(StarfieldPlugin)
-        .add_plugin(MapPlugin)
-        .add_plugin(EnemyPlugin)
-        .add_plugin(TowerPlugin)
-        .add_plugin(MainMenuPlugin)
-        .add_plugin(SavePlugin)
-        .add_plugin(UiPlugin)
-        .add_plugin(WavePlugin)
-        .add_plugin(GameOverPlugin);
+        .add_plugins(LoadingPlugin)
+        .add_plugins(StarfieldPlugin)
+        .add_plugins(MapPlugin)
+        .add_plugins(EnemyPlugin)
+        .add_plugins(TowerPlugin)
+        .add_plugins(MainMenuPlugin)
+        .add_plugins(SavePlugin)
+        .add_plugins(UiPlugin)
+        .add_plugins(WavePlugin)
+        .add_plugins(GameOverPlugin);
 
     #[cfg(feature = "inspector")]
     {
@@ -266,6 +271,7 @@ fn apply_controls(
             desired_velocity: if turn_in_place { Vec3::ZERO } else { clamped },
             desired_forward: normalized,
             jump: jump.then_some(1.0),
+            float_height_offset: 0.0,
         };
     }
 }
@@ -424,26 +430,37 @@ fn spawn_player(
                 SelectedTile(None),
                 SelectedItem(None),
                 TnuaRapier3dSensorShape(Collider::cylinder(0.0, 0.49)),
-                TnuaPlatformerBundle::new_with_config(TnuaPlatformerConfig {
-                    full_speed: 4.3,
-                    full_jump_height: 2.0,
-                    up: Vec3::Y,
-                    forward: -Vec3::Z,
-                    float_height: 1.0,
-                    cling_distance: 0.5,
-                    spring_strengh: 400.0,
-                    spring_dampening: 1.2,
-                    acceleration: 50.0,
-                    air_acceleration: 10.0,
-                    coyote_time: 0.15,
-                    jump_start_extra_gravity: 30.0,
-                    jump_fall_extra_gravity: 20.0,
-                    jump_shorten_extra_gravity: 40.0,
-                    free_fall_behavior: TnuaFreeFallBehavior::LikeJumpShorten,
-                    tilt_offset_angvel: 5.0,
-                    tilt_offset_angacl: 500.0,
-                    turning_angvel: 5.0,
-                }),
+                TnuaPlatformerBundle {
+                    config: TnuaPlatformerConfig {
+                        full_speed: 4.3,
+                        full_jump_height: 2.0,
+                        up: Vec3::Y,
+                        forward: -Vec3::Z,
+                        float_height: 1.0,
+                        cling_distance: 0.5,
+                        spring_strengh: 400.0,
+                        spring_dampening: 1.2,
+                        acceleration: 50.0,
+                        air_acceleration: 10.0,
+                        coyote_time: 0.15,
+                        free_fall_behavior: TnuaFreeFallBehavior::LikeJumpShorten,
+                        tilt_offset_angvel: 5.0,
+                        tilt_offset_angacl: 500.0,
+                        turning_angvel: 5.0,
+                        height_change_impulse_for_duration: 0.02,
+                        height_change_impulse_limit: 40.0,
+                        held_jump_cooldown: Some(0.2),
+                        upslope_jump_extra_gravity: 30.0,
+                        jump_fall_extra_gravity: 20.0,
+                        jump_shorten_extra_gravity: 40.0,
+                        jump_input_buffer_time: 0.2,
+                        jump_peak_prevention_at_upward_velocity: 1.0,
+                        jump_peak_prevention_extra_gravity: 20.0,
+                        jump_takeoff_extra_gravity: 30.0,
+                        jump_takeoff_above_velocity: 2.0,
+                    },
+                    ..default()
+                },
                 InputManagerBundle::<Action> {
                     action_state: ActionState::default(),
                     input_map: InputMap::default()
@@ -518,7 +535,6 @@ fn grab(
     player_query: Query<(Entity, &Children, &ActionState<Action>, &SelectedItem), With<Player>>,
     grabbed_item_query: Query<(), With<GrabbedItem>>,
     mut item_query: Query<&Item>,
-    audio: Res<Audio>,
     game_audio: Res<Sounds>,
     audio_setting: Res<SfxSetting>,
 ) {
@@ -539,10 +555,11 @@ fn grab(
 
     // player is already holding an item
     if grabbed_item_query.iter_many(children).next().is_some() {
-        audio.play_with_settings(
-            game_audio.bad.clone(),
-            PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
-        );
+        commands.spawn(AudioBundle {
+            source: game_audio.bad.clone(),
+            settings: PlaybackSettings::ONCE
+                .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+        });
 
         return;
     }
@@ -559,7 +576,6 @@ fn build_tower(
     player_query: Query<(&Children, &ActionState<Action>, &SelectedTile), With<Player>>,
     grabbed_item_query: Query<(Entity, &Item)>,
     invalid_pos_query: Query<&TilePos, Or<(With<MovingFloor>, With<Tower>, With<ItemSpawner>)>>,
-    audio: Res<Audio>,
     game_audio: Res<Sounds>,
     audio_setting: Res<SfxSetting>,
     mut events: EventWriter<SpawnTowerEvent>,
@@ -581,19 +597,20 @@ fn build_tower(
     }
 
     let Some(selected_tile) = selected_tile.0 else {
-        audio.play_with_settings(
-            game_audio.bad.clone(),
-            PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
-        );
+        commands.spawn(AudioBundle {
+            source: game_audio.bad.clone(),
+            settings: PlaybackSettings::ONCE.with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+        });
         return;
     };
 
     let invalid = invalid_pos_query.iter().any(|pos| pos.0 == selected_tile);
     if invalid {
-        audio.play_with_settings(
-            game_audio.bad.clone(),
-            PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
-        );
+        commands.spawn(AudioBundle {
+            source: game_audio.bad.clone(),
+            settings: PlaybackSettings::ONCE
+                .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+        });
         return;
     }
 
@@ -606,7 +623,6 @@ fn feed_tower(
     player_query: Query<(&Children, &ActionState<Action>, &SelectedTile), With<Player>>,
     grabbed_item_query: Query<(Entity, &Item)>,
     mut tower_query: Query<(&TilePos, &mut Ammo), With<Tower>>,
-    audio: Res<Audio>,
     game_audio: Res<Sounds>,
     audio_setting: Res<SfxSetting>,
 ) {
@@ -627,27 +643,29 @@ fn feed_tower(
     }
 
     let Some(selected_tile) = selected_tile.0 else {
-        audio.play_with_settings(
-            game_audio.bad.clone(),
-            PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
-        );
+        commands.spawn(AudioBundle {
+            source:game_audio.bad.clone(),
+            settings:PlaybackSettings::ONCE.with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+        });
+
         return
     };
 
     let Some((_, mut ammo)) = tower_query.iter_mut().find(|(pos, _)| pos.0 == selected_tile) else {
-        audio.play_with_settings(
-            game_audio.bad.clone(),
-            PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
-        );
+        commands.spawn(AudioBundle {
+            source:game_audio.bad.clone(),
+            settings:PlaybackSettings::ONCE.with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+        });
         return;
     };
 
     ammo.current = ammo.max;
 
-    audio.play_with_settings(
-        game_audio.feed.clone(),
-        PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
-    );
+    commands.spawn(AudioBundle {
+        source: game_audio.feed.clone(),
+        settings: PlaybackSettings::ONCE
+            .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+    });
 
     commands.entity(entity).despawn_recursive();
 }
@@ -667,10 +685,11 @@ fn start_music(
     commands.spawn((
         AudioBundle {
             source: audio_assets.music.clone(),
-            settings: PlaybackSettings::LOOP.with_volume(**music_setting as f32 / 100.),
+            settings: PlaybackSettings::LOOP
+                .with_volume(Volume::new_absolute(**music_setting as f32 / 100.)),
         },
         MusicController,
-    ))
+    ));
 }
 
 fn game_over(

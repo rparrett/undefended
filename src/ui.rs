@@ -49,26 +49,23 @@ pub struct LivesContainer;
 pub struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, update_waves.run_if(in_state(GameState::Playing)))
-            .add_systems(
-                Update,
-                update_wave_timer.run_if(in_state(GameState::Playing)),
+        app.add_systems(
+            Update,
+            (
+                update_waves,
+                update_wave_timer,
+                update_wave_stats,
+                follow,
+                update_ammo,
+                spawn_ammo,
+                update_item_spawners,
+                spawn_item_spawners,
+                update_lives,
             )
-            .add_systems(Update, update_wave_stats.v(in_state(GameState::Playing)))
-            .add_systems(Update, follow.run_if(in_state(GameState::Playing)))
-            .add_systems(Update, update_ammo.run_if(in_state(GameState::Playing)))
-            .add_systems(Update, spawn_ammo.run_if(in_state(GameState::Playing)))
-            .add_systems(
-                Update,
-                update_item_spawners.run_if(in_state(GameState::Playing)),
-            )
-            .add_systems(
-                Update,
-                spawn_item_spawners.run_if(in_state(GameState::Playing)),
-            )
-            .add_systems(OnExit(GameState::MainMenu), setup)
-            .add_systems(OnExit(GameState::MainMenu), setup_lives)
-            .add_systems(Update, update_lives.run_if(in_state(GameState::Playing)));
+                .distributive_run_if(in_state(GameState::Playing)),
+        )
+        .add_systems(OnExit(GameState::MainMenu), setup)
+        .add_systems(OnExit(GameState::MainMenu), setup_lives);
     }
 }
 
@@ -295,7 +292,7 @@ pub fn buttons(
 ) {
     for (interaction, focusable, mut color) in &mut interaction_query {
         match *interaction {
-            Interaction::Clicked => {
+            Interaction::Pressed => {
                 *color = PRESSED_BUTTON.into();
             }
             Interaction::Hovered => {
@@ -453,11 +450,8 @@ fn follow(
             continue;
         };
 
-        style.position = UiRect {
-            left: Val::Px(viewport.x).try_sub(style.size.width / 2.).unwrap(),
-            bottom: Val::Px(viewport.y),
-            ..default()
-        };
+        style.left = Val::Px(viewport.x).try_sub(style.width / 2.).unwrap();
+        style.bottom = Val::Px(viewport.y);
     }
 }
 

@@ -1,4 +1,4 @@
-use bevy::{math::Vec3Swizzles, prelude::*};
+use bevy::{audio::Volume, math::Vec3Swizzles, prelude::*};
 use bevy_rapier3d::prelude::*;
 
 use crate::{
@@ -94,7 +94,8 @@ fn movement(
         } else {
             commands.spawn(AudioBundle {
                 source: game_audio.damage.clone(),
-                settings: PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
+                settings: PlaybackSettings::ONCE
+                    .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
             });
 
             lives.0 = lives.0.saturating_sub(1);

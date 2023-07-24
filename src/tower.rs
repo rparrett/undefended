@@ -1,3 +1,4 @@
+use bevy::audio::Volume;
 use bevy::math::Vec3Swizzles;
 use bevy::{prelude::*, utils::HashSet};
 use bevy_rapier3d::prelude::*;
@@ -236,7 +237,8 @@ fn build_sound(
 
     commands.spawn(AudioBundle {
         source: game_audio.build.clone(),
-        settings: PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
+        settings: PlaybackSettings::ONCE
+            .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
     });
 }
 
@@ -330,7 +332,8 @@ fn laser_sound(
         if ammo.current == 0 {
             commands.spawn(AudioBundle {
                 source: game_audio.powerdown.clone(),
-                settings: PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
+                settings: PlaybackSettings::ONCE
+                    .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
             });
         }
     }

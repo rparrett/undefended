@@ -1,4 +1,7 @@
-use bevy::{audio::AudioSink, prelude::*};
+use bevy::{
+    audio::{AudioSink, Volume},
+    prelude::*,
+};
 use bevy_ui_navigation::prelude::*;
 
 use crate::{
@@ -354,7 +357,8 @@ fn sfx_volume(mut commands: Commands, sfx_setting: Res<SfxSetting>, game_audio: 
 
     commands.spawn(AudioBundle {
         source: game_audio.build.clone(),
-        settings: PlaybackSettings::ONCE.with_volume(**sfx_setting as f32 / 100.),
+        settings: PlaybackSettings::ONCE
+            .with_volume(Volume::new_absolute(**sfx_setting as f32 / 100.)),
     });
 }
 
