@@ -49,17 +49,26 @@ pub struct LivesContainer;
 pub struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(update_waves.in_set(OnUpdate(GameState::Playing)))
-            .add_system(update_wave_timer.in_set(OnUpdate(GameState::Playing)))
-            .add_system(update_wave_stats.in_set(OnUpdate(GameState::Playing)))
-            .add_system(follow.in_set(OnUpdate(GameState::Playing)))
-            .add_system(update_ammo.in_set(OnUpdate(GameState::Playing)))
-            .add_system(spawn_ammo.in_set(OnUpdate(GameState::Playing)))
-            .add_system(update_item_spawners.in_set(OnUpdate(GameState::Playing)))
-            .add_system(spawn_item_spawners.in_set(OnUpdate(GameState::Playing)))
-            .add_system(setup.in_schedule(OnExit(GameState::MainMenu)))
-            .add_system(setup_lives.in_schedule(OnExit(GameState::MainMenu)))
-            .add_system(update_lives.in_set(OnUpdate(GameState::Playing)));
+        app.add_systems(Update, update_waves.run_if(in_state(GameState::Playing)))
+            .add_systems(
+                Update,
+                update_wave_timer.run_if(in_state(GameState::Playing)),
+            )
+            .add_systems(Update, update_wave_stats.v(in_state(GameState::Playing)))
+            .add_systems(Update, follow.run_if(in_state(GameState::Playing)))
+            .add_systems(Update, update_ammo.run_if(in_state(GameState::Playing)))
+            .add_systems(Update, spawn_ammo.run_if(in_state(GameState::Playing)))
+            .add_systems(
+                Update,
+                update_item_spawners.run_if(in_state(GameState::Playing)),
+            )
+            .add_systems(
+                Update,
+                spawn_item_spawners.run_if(in_state(GameState::Playing)),
+            )
+            .add_systems(OnExit(GameState::MainMenu), setup)
+            .add_systems(OnExit(GameState::MainMenu), setup_lives)
+            .add_systems(Update, update_lives.run_if(in_state(GameState::Playing)));
     }
 }
 
@@ -81,13 +90,10 @@ fn setup(mut commands: Commands, fonts: Res<Fonts>) {
             NodeBundle {
                 style: Style {
                     flex_direction: FlexDirection::Column,
-                    size: Size::width(Val::Px(165.)),
+                    width: Val::Px(165.),
                     position_type: PositionType::Absolute,
-                    position: UiRect {
-                        top: Val::Px(0.0),
-                        right: Val::Px(0.0),
-                        ..default()
-                    },
+                    top: Val::Px(0.0),
+                    right: Val::Px(0.0),
                     padding: UiRect::all(Val::Px(5.)),
                     ..default()
                 },
@@ -229,11 +235,8 @@ fn setup_lives(mut commands: Commands, lives: Res<Lives>, images: Res<Images>) {
             NodeBundle {
                 style: Style {
                     position_type: PositionType::Absolute,
-                    position: UiRect {
-                        top: Val::Px(0.0),
-                        left: Val::Px(0.0),
-                        ..default()
-                    },
+                    top: Val::Px(0.0),
+                    left: Val::Px(0.0),
                     padding: UiRect::all(Val::Px(5.)),
                     ..default()
                 },
@@ -249,10 +252,8 @@ fn setup_lives(mut commands: Commands, lives: Res<Lives>, images: Res<Images>) {
                     image: images.heart.clone().into(),
                     style: Style {
                         margin: UiRect::right(Val::Px(padding)),
-                        max_size: Size {
-                            width: Val::Px(20.0),
-                            height: Val::Px(20.0),
-                        },
+                        max_width: Val::Px(20.0),
+                        max_height: Val::Px(20.0),
                         ..default()
                     },
                     ..default()
@@ -327,7 +328,8 @@ fn spawn_ammo(
                 NodeBundle {
                     style: Style {
                         position_type: PositionType::Absolute,
-                        size: Size::new(Val::Px(100.), Val::Px(20.)),
+                        width: Val::Px(100.),
+                        height: Val::Px(20.),
                         justify_content: JustifyContent::Center,
                         ..default()
                     },
@@ -383,7 +385,8 @@ fn spawn_item_spawners(
                 NodeBundle {
                     style: Style {
                         position_type: PositionType::Absolute,
-                        size: Size::new(Val::Px(100.), Val::Px(20.)),
+                        width: Val::Px(100.),
+                        height: Val::Px(20.),
                         justify_content: JustifyContent::Center,
                         ..default()
                     },
