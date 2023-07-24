@@ -14,7 +14,7 @@ struct Starfield;
 
 impl Plugin for StarfieldPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(Material2dPlugin::<StarfieldMaterial>::default())
+        app.add_plugins(Material2dPlugin::<StarfieldMaterial>::default())
             .add_systems(OnEnter(GameState::Pipelines), setup)
             .add_systems(Update, move_starfield.run_if(in_state(GameState::Playing)));
     }

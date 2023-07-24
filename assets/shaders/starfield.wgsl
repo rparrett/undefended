@@ -1,4 +1,4 @@
-#import bevy_sprite::mesh2d_view_bindings
+#import bevy_sprite::mesh2d_vertex_output MeshVertexOutput
 
 struct StarfieldMaterial {
     pos: vec2<f32>,
@@ -51,9 +51,8 @@ fn starfield(samplePosition: vec2<f32>, threshold: f32) -> vec3<f32> {
 
 @fragment
 fn fragment(
-    @builtin(position) position: vec4<f32>,
-    #import bevy_sprite::mesh2d_vertex_output
-) -> @location(0) vec4<f32> {
+    mesh: MeshVertexOutput
+) ->  @location(0) vec4<f32> {
 	var finalColor: vec3<f32>;
 
     let pos = material.pos / vec2<f32>(-100., 100.);
@@ -68,7 +67,7 @@ fn fragment(
         let layer_speed = inv;
         let layer_brightness = inv * 0.4;
 
-        let starfield_coords = (position.xy + layer_offset) * layer_zoom - pos * layer_speed;
+        let starfield_coords = (mesh.position.xy + layer_offset) * layer_zoom - pos * layer_speed;
 
 		finalColor = finalColor + (starfield(starfield_coords, threshold) * layer_brightness);
 	}
