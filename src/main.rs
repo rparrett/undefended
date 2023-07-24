@@ -451,7 +451,7 @@ fn spawn_player(
                         turning_angvel: 5.0,
                         height_change_impulse_for_duration: 0.02,
                         height_change_impulse_limit: 40.0,
-                        held_jump_cooldown: Some(0.2),
+                        held_jump_cooldown: None,
                         upslope_jump_extra_gravity: 30.0,
                         jump_fall_extra_gravity: 20.0,
                         jump_shorten_extra_gravity: 40.0,
