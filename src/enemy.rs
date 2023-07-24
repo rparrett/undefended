@@ -1,4 +1,4 @@
-use bevy::{math::Vec3Swizzles, prelude::*};
+use bevy::{audio::Volume, math::Vec3Swizzles, prelude::*};
 use bevy_rapier3d::prelude::*;
 
 use crate::{
@@ -28,6 +28,7 @@ impl HitPoints {
     }
 }
 
+#[derive(Event)]
 pub struct SpawnEnemyEvent {
     pub hp: u32,
 }
@@ -35,9 +36,9 @@ pub struct SpawnEnemyEvent {
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<SpawnEnemyEvent>()
-            .add_system(spawn.in_set(OnUpdate(GameState::Playing)))
-            .add_system(movement.in_set(OnUpdate(GameState::Playing)))
-            .add_system(death.in_set(OnUpdate(GameState::Playing)));
+            .add_systems(Update, spawn.run_if(in_state(GameState::Playing)))
+            .add_systems(Update, movement.run_if(in_state(GameState::Playing)))
+            .add_systems(Update, death.run_if(in_state(GameState::Playing)));
     }
 }
 
@@ -66,7 +67,6 @@ fn movement(
     mut query: Query<(Entity, &mut Transform, &mut PathIndex), With<Enemy>>,
     time: Res<Time>,
     mut lives: ResMut<Lives>,
-    audio: Res<Audio>,
     game_audio: Res<Sounds>,
     audio_setting: Res<SfxSetting>,
 ) {
@@ -92,10 +92,11 @@ fn movement(
                 path_index.0 += 1;
             }
         } else {
-            audio.play_with_settings(
-                game_audio.damage.clone(),
-                PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
-            );
+            commands.spawn(AudioBundle {
+                source: game_audio.damage.clone(),
+                settings: PlaybackSettings::ONCE
+                    .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+            });
 
             lives.0 = lives.0.saturating_sub(1);
             commands.entity(entity).despawn_recursive();

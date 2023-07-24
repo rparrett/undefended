@@ -2,7 +2,7 @@ use bevy::{
     prelude::*,
     render::{
         render_resource::{CachedPipelineState, PipelineCache},
-        RenderApp, RenderSet,
+        Render, RenderApp, RenderSet,
     },
 };
 use bevy_asset_loader::prelude::*;
@@ -73,7 +73,7 @@ pub struct Images {
 
 struct PipelineStatus(Receiver<bool>);
 
-const EXPECTED_PIPELINES: usize = 9;
+const EXPECTED_PIPELINES: usize = 10;
 
 impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
@@ -88,24 +88,30 @@ impl Plugin for LoadingPlugin {
         .add_collection_to_loading_state::<_, Fonts>(GameState::Loading)
         .add_collection_to_loading_state::<_, Images>(GameState::Loading)
         .add_collection_to_loading_state::<_, Sounds>(GameState::Loading)
-        .add_system(pipelines_done.in_set(OnUpdate(GameState::Pipelines)))
-        .add_system(cleanup.in_schedule(OnExit(GameState::Pipelines)))
-        .add_system(setup_pipelines.in_schedule(OnEnter(GameState::Pipelines)));
+        .add_systems(
+            Update,
+            pipelines_done.run_if(in_state(GameState::Pipelines)),
+        )
+        .add_systems(OnExit(GameState::Pipelines), cleanup)
+        .add_systems(OnEnter(GameState::Pipelines), setup_pipelines);
 
         let renderer_app = app.sub_app_mut(RenderApp);
         let mut done = false;
-        renderer_app.add_system(
+        renderer_app.add_systems(
+            Render,
             (move |cache: Res<PipelineCache>| {
+                if done {
+                    return;
+                }
+
                 let ready = cache
                     .pipelines()
                     .filter(|pipeline| matches!(pipeline.state, CachedPipelineState::Ok(_)))
                     .count();
 
-                if !done {
-                    debug!("rdy: {}/{}", ready, EXPECTED_PIPELINES);
-                }
+                debug!("pipelines ready: {}/{}", ready, EXPECTED_PIPELINES);
 
-                if !done && ready >= EXPECTED_PIPELINES {
+                if ready >= EXPECTED_PIPELINES {
                     let _ = tx.send(true);
                     done = true
                 }

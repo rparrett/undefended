@@ -1,4 +1,5 @@
-use bevy::{prelude::*, utils::Duration};
+use bevy::{prelude::*, ui::UiSystem, utils::Duration};
+use bevy_dolly::system::DollyUpdateSet;
 use bevy_ui_navigation::prelude::*;
 
 use crate::{
@@ -49,17 +50,29 @@ pub struct LivesContainer;
 pub struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(update_waves.in_set(OnUpdate(GameState::Playing)))
-            .add_system(update_wave_timer.in_set(OnUpdate(GameState::Playing)))
-            .add_system(update_wave_stats.in_set(OnUpdate(GameState::Playing)))
-            .add_system(follow.in_set(OnUpdate(GameState::Playing)))
-            .add_system(update_ammo.in_set(OnUpdate(GameState::Playing)))
-            .add_system(spawn_ammo.in_set(OnUpdate(GameState::Playing)))
-            .add_system(update_item_spawners.in_set(OnUpdate(GameState::Playing)))
-            .add_system(spawn_item_spawners.in_set(OnUpdate(GameState::Playing)))
-            .add_system(setup.in_schedule(OnExit(GameState::MainMenu)))
-            .add_system(setup_lives.in_schedule(OnExit(GameState::MainMenu)))
-            .add_system(update_lives.in_set(OnUpdate(GameState::Playing)));
+        app.add_systems(
+            Update,
+            (
+                update_waves,
+                update_wave_timer,
+                update_wave_stats,
+                update_ammo,
+                spawn_ammo,
+                update_item_spawners,
+                spawn_item_spawners,
+                update_lives,
+            )
+                .distributive_run_if(in_state(GameState::Playing)),
+        )
+        .add_systems(
+            PostUpdate,
+            follow
+                .after(DollyUpdateSet)
+                .before(UiSystem::Layout)
+                .run_if(in_state(GameState::Playing)),
+        )
+        .add_systems(OnExit(GameState::MainMenu), setup)
+        .add_systems(OnExit(GameState::MainMenu), setup_lives);
     }
 }
 
@@ -81,13 +94,10 @@ fn setup(mut commands: Commands, fonts: Res<Fonts>) {
             NodeBundle {
                 style: Style {
                     flex_direction: FlexDirection::Column,
-                    size: Size::width(Val::Px(165.)),
+                    width: Val::Px(165.),
                     position_type: PositionType::Absolute,
-                    position: UiRect {
-                        top: Val::Px(0.0),
-                        right: Val::Px(0.0),
-                        ..default()
-                    },
+                    top: Val::Px(0.0),
+                    right: Val::Px(0.0),
                     padding: UiRect::all(Val::Px(5.)),
                     ..default()
                 },
@@ -229,11 +239,8 @@ fn setup_lives(mut commands: Commands, lives: Res<Lives>, images: Res<Images>) {
             NodeBundle {
                 style: Style {
                     position_type: PositionType::Absolute,
-                    position: UiRect {
-                        top: Val::Px(0.0),
-                        left: Val::Px(0.0),
-                        ..default()
-                    },
+                    top: Val::Px(0.0),
+                    left: Val::Px(0.0),
                     padding: UiRect::all(Val::Px(5.)),
                     ..default()
                 },
@@ -249,10 +256,8 @@ fn setup_lives(mut commands: Commands, lives: Res<Lives>, images: Res<Images>) {
                     image: images.heart.clone().into(),
                     style: Style {
                         margin: UiRect::right(Val::Px(padding)),
-                        max_size: Size {
-                            width: Val::Px(20.0),
-                            height: Val::Px(20.0),
-                        },
+                        max_width: Val::Px(20.0),
+                        max_height: Val::Px(20.0),
                         ..default()
                     },
                     ..default()
@@ -294,7 +299,7 @@ pub fn buttons(
 ) {
     for (interaction, focusable, mut color) in &mut interaction_query {
         match *interaction {
-            Interaction::Clicked => {
+            Interaction::Pressed => {
                 *color = PRESSED_BUTTON.into();
             }
             Interaction::Hovered => {
@@ -327,7 +332,8 @@ fn spawn_ammo(
                 NodeBundle {
                     style: Style {
                         position_type: PositionType::Absolute,
-                        size: Size::new(Val::Px(100.), Val::Px(20.)),
+                        width: Val::Px(100.),
+                        height: Val::Px(20.),
                         justify_content: JustifyContent::Center,
                         ..default()
                     },
@@ -358,7 +364,7 @@ fn spawn_ammo(
 fn update_ammo(mut query: Query<(&mut Text, &AmmoText)>, ammo_query: Query<&Ammo, Changed<Ammo>>) {
     for (mut text, entity) in query.iter_mut() {
         let Ok(ammo) = ammo_query.get(entity.0) else {
-            continue
+            continue;
         };
 
         if ammo.current == 0 {
@@ -383,7 +389,8 @@ fn spawn_item_spawners(
                 NodeBundle {
                     style: Style {
                         position_type: PositionType::Absolute,
-                        size: Size::new(Val::Px(100.), Val::Px(20.)),
+                        width: Val::Px(100.),
+                        height: Val::Px(20.),
                         justify_content: JustifyContent::Center,
                         ..default()
                     },
@@ -417,7 +424,7 @@ fn update_item_spawners(
 ) {
     for (mut text, mut visibility, entity) in query.iter_mut() {
         let Ok(item_spawner) = item_spawner_query.get(entity.0) else {
-            continue
+            continue;
         };
 
         if item_spawner.timer.remaining() == Duration::ZERO && item_spawner.spawned == 1 {
@@ -443,18 +450,22 @@ fn follow(
 
     for (mut style, follow) in query.iter_mut() {
         let Ok(world) = world_query.get(follow.0) else {
-            continue
-        };
-
-        let Some(viewport) = camera.world_to_viewport(camera_transform, world.translation() + Vec3::Y * 2.0) else {
             continue;
         };
 
-        style.position = UiRect {
-            left: Val::Px(viewport.x).try_sub(style.size.width / 2.).unwrap(),
-            bottom: Val::Px(viewport.y),
-            ..default()
+        let Some(viewport) =
+            camera.world_to_viewport(camera_transform, world.translation() + Vec3::Y * 2.0)
+        else {
+            continue;
         };
+
+        let width = match style.width {
+            Val::Px(px) => px,
+            _ => continue,
+        };
+
+        style.left = Val::Px((viewport.x - width / 2.).round());
+        style.top = Val::Px(viewport.y);
     }
 }
 
@@ -496,7 +507,7 @@ fn update_wave_stats(
     difficulty: Res<DifficultySetting>,
 ) {
     let Some(current) = waves.current() else {
-        return
+        return;
     };
 
     let extra_hp = match *difficulty {

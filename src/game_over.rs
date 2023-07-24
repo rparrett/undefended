@@ -10,12 +10,13 @@ use crate::{
 pub struct GameOverPlugin;
 impl Plugin for GameOverPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(spawn.in_schedule(OnEnter(GameState::GameOver)))
+        app.add_systems(OnEnter(GameState::GameOver), spawn)
             .add_systems(
+                Update,
                 (button_actions, buttons.after(NavRequestSystem))
-                    .in_set(OnUpdate(GameState::GameOver)),
+                    .run_if(in_state(GameState::GameOver)),
             )
-            .add_system(cleanup.in_schedule(OnExit(GameState::GameOver)));
+            .add_systems(OnExit(GameState::GameOver), cleanup);
     }
 }
 
@@ -36,7 +37,8 @@ fn spawn(mut commands: Commands, fonts: Res<Fonts>, won: Res<Won>) {
         color: TITLE_TEXT,
     };
     let button_style = Style {
-        size: Size::new(Val::Px(250.0), Val::Px(45.0)),
+        width: Val::Px(250.0),
+        height: Val::Px(45.0),
         margin: UiRect::all(Val::Px(5.0)),
         justify_content: JustifyContent::Center,
         align_items: AlignItems::Center,
@@ -53,15 +55,10 @@ fn spawn(mut commands: Commands, fonts: Res<Fonts>, won: Res<Won>) {
             NodeBundle {
                 style: Style {
                     position_type: PositionType::Absolute,
-                    position: UiRect {
-                        top: Val::Px(0.),
-                        left: Val::Px(0.),
-                        ..default()
-                    },
-                    size: Size {
-                        width: Val::Percent(100.),
-                        height: Val::Percent(100.),
-                    },
+                    top: Val::Px(0.),
+                    left: Val::Px(0.),
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
                     ..default()
                 },
                 ..default()

@@ -12,8 +12,8 @@ const LOCAL_STORAGE_KEY: &str = "undefended-save";
 pub struct SavePlugin;
 impl Plugin for SavePlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(save_system);
-        app.add_startup_system(load_system);
+        app.add_systems(Update, save_system);
+        app.add_systems(Startup, load_system);
     }
 }
 

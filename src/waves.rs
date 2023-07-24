@@ -70,8 +70,8 @@ impl Plugin for WavePlugin {
         app.insert_resource(WaveState::from(&waves.waves[0]))
             .insert_resource(waves);
 
-        app.add_system(spawn_enemies.in_set(OnUpdate(GameState::Playing)))
-            .add_system(reset.in_schedule(OnExit(GameState::GameOver)));
+        app.add_systems(Update, spawn_enemies.run_if(in_state(GameState::Playing)))
+            .add_systems(OnExit(GameState::GameOver), reset);
     }
 }
 
