@@ -426,6 +426,8 @@ fn spawn_player(
                 Velocity::default(),
                 Collider::capsule_y(0.30, 0.5),
                 ActiveEvents::COLLISION_EVENTS,
+                ExternalForce::default(),
+                ReadMassProperties::default(),
                 LastTile(event.0),
                 SelectedTile(None),
                 SelectedItem(None),
