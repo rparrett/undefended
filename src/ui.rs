@@ -1,4 +1,5 @@
 use bevy::{prelude::*, utils::Duration};
+use bevy_dolly::system::DollyUpdateSet;
 use bevy_ui_navigation::prelude::*;
 
 use crate::{
@@ -55,7 +56,6 @@ impl Plugin for UiPlugin {
                 update_waves,
                 update_wave_timer,
                 update_wave_stats,
-                follow,
                 update_ammo,
                 spawn_ammo,
                 update_item_spawners,
@@ -63,6 +63,12 @@ impl Plugin for UiPlugin {
                 update_lives,
             )
                 .distributive_run_if(in_state(GameState::Playing)),
+        )
+        .add_systems(
+            Update,
+            follow
+                .after(DollyUpdateSet)
+                .run_if(in_state(GameState::Playing)),
         )
         .add_systems(OnExit(GameState::MainMenu), setup)
         .add_systems(OnExit(GameState::MainMenu), setup_lives);
@@ -450,7 +456,12 @@ fn follow(
             continue;
         };
 
-        style.left = Val::Px(viewport.x).try_sub(style.width / 2.).unwrap();
+        let width = match style.width {
+            Val::Px(px) => px,
+            _ => continue,
+        };
+
+        style.left = Val::Px((viewport.x - width / 2.).round());
         style.top = Val::Px(viewport.y);
     }
 }

@@ -134,7 +134,6 @@ fn main() {
             Update,
             (
                 apply_controls,
-                update_camera,
                 cursor,
                 item_probe,
                 spawn_player,
@@ -146,6 +145,12 @@ fn main() {
                 game_over,
             )
                 .distributive_run_if(in_state(GameState::Playing)),
+        )
+        .add_systems(
+            Update,
+            update_camera
+                .run_if(in_state(GameState::Playing))
+                .before(DollyUpdateSet),
         )
         .add_systems(
             Update,
