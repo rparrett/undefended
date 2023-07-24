@@ -52,7 +52,7 @@ fn starfield(samplePosition: vec2<f32>, threshold: f32) -> vec3<f32> {
 @fragment
 fn fragment(
     mesh: MeshVertexOutput
-) ->  @location(0) vec4<f32> {
+) -> @location(0) vec4<f32> {
 	var finalColor: vec3<f32>;
 
     let pos = material.pos / vec2<f32>(-100., 100.);
