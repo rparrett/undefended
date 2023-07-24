@@ -809,6 +809,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_mod_debugdump"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e8e56ca0ed565ddc8c2507e105a63c277a5671bb5b27e3130ea8e138be18050"
+dependencies = [
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_render",
+ "bevy_utils",
+ "once_cell",
+ "petgraph",
+ "pretty-type-name",
+]
+
+[[package]]
 name = "bevy_pbr"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3767,6 +3782,7 @@ dependencies = [
  "bevy-ui-navigation",
  "bevy_asset_loader",
  "bevy_dolly",
+ "bevy_mod_debugdump",
  "bevy_rapier3d",
  "crossbeam-channel",
  "leafwing-input-manager",

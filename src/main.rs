@@ -10,7 +10,7 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
 use bevy_tnua::{
     TnuaFreeFallBehavior, TnuaPlatformerBundle, TnuaPlatformerConfig, TnuaPlatformerControls,
-    TnuaPlatformerPlugin, TnuaRapier3dPlugin, TnuaRapier3dSensorShape,
+    TnuaPlatformerPlugin, TnuaRapier3dPlugin, TnuaRapier3dSensorShape, TnuaUserControlsSystemSet,
 };
 use bevy_ui_navigation::{systems::InputMapping, DefaultNavigationPlugins};
 use game_over::GameOverPlugin;
@@ -133,7 +133,6 @@ fn main() {
         .add_systems(
             Update,
             (
-                apply_controls,
                 cursor,
                 item_probe,
                 spawn_player,
@@ -146,9 +145,11 @@ fn main() {
             )
                 .distributive_run_if(in_state(GameState::Playing)),
         )
+        .add_systems(Update, apply_controls.in_set(TnuaUserControlsSystemSet))
         .add_systems(
             Update,
             update_camera
+                .in_set(AfterPhysics)
                 .run_if(in_state(GameState::Playing))
                 .before(DollyUpdateSet),
         )
@@ -165,7 +166,10 @@ fn main() {
     app.add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(TnuaPlatformerPlugin)
         .add_plugins(TnuaRapier3dPlugin)
-        .add_systems(Update, Dolly::<MainCamera>::update_active)
+        .add_systems(
+            Update,
+            Dolly::<MainCamera>::update_active.in_set(DollyUpdateSet),
+        )
         .add_plugins(InputManagerPlugin::<Action>::default())
         .insert_resource(InputMapping {
             keyboard_navigation: true,
@@ -193,6 +197,18 @@ fn main() {
         app.add_plugin(RapierDebugRenderPlugin::default());
         app.register_type::<SelectedTile>();
         app.register_type::<SelectedItem>();
+    }
+
+    #[cfg(feature = "debugdump")]
+    {
+        let settings = bevy_mod_debugdump::schedule_graph::Settings {
+            ambiguity_enable: false,
+            ambiguity_enable_on_world: false,
+            ..Default::default()
+        };
+
+        let dot = bevy_mod_debugdump::schedule_graph_dot(&mut app, Update, &settings);
+        println!("{dot}");
     }
 
     app.run();
