@@ -88,9 +88,12 @@ impl Plugin for LoadingPlugin {
         .add_collection_to_loading_state::<_, Fonts>(GameState::Loading)
         .add_collection_to_loading_state::<_, Images>(GameState::Loading)
         .add_collection_to_loading_state::<_, Sounds>(GameState::Loading)
-        .add_system(pipelines_done.in_set(OnUpdate(GameState::Pipelines)))
-        .add_system(cleanup.in_schedule(OnExit(GameState::Pipelines)))
-        .add_system(setup_pipelines.in_schedule(OnEnter(GameState::Pipelines)));
+        .add_systems(
+            Update,
+            pipelines_done.run_if(in_state(GameState::Pipelines)),
+        )
+        .add_systems(OnExit(GameState::Pipelines), cleanup)
+        .add_systems(OnEnter(GameState::Pipelines), setup_pipelines);
 
         let renderer_app = app.sub_app_mut(RenderApp);
         let mut done = false;

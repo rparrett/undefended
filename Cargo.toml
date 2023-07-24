@@ -13,7 +13,7 @@ bevy = "0.11"
 
 bevy-tnua = { version = "0.8", features = ["rapier_3d"] }
 bevy_rapier3d = { version = "0.22", features = ["debug-render-3d"] }
-bevy_dolly = { version = "0.0.1", default-features = false }
+bevy_dolly = { version = "0.0.1" }
 bevy_asset_loader = "0.17.0"
 bevy-inspector-egui = { version = "0.19", optional = true }
 leafwing-input-manager = "0.10"

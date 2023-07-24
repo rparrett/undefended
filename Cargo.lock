@@ -566,6 +566,7 @@ dependencies = [
  "bevy",
  "bevy_math",
  "bevy_transform",
+ "leafwing-input-manager",
 ]
 
 [[package]]

@@ -97,8 +97,8 @@ enum GameState {
 #[system_set(base)]
 pub struct AfterPhysics;
 
-#[derive(Resource)]
-struct MusicController(Handle<AudioSink>);
+#[derive(Component)]
+struct MusicController;
 
 struct SpawnPlayerEvent(UVec2);
 
@@ -663,14 +663,14 @@ fn start_music(
     mut commands: Commands,
     music_setting: Res<MusicSetting>,
     audio_assets: Res<Sounds>,
-    audio_sinks: Res<Assets<AudioSink>>,
-    audio: Res<Audio>,
 ) {
-    let handle = audio_sinks.get_handle(audio.play_with_settings(
-        audio_assets.music.clone(),
-        PlaybackSettings::LOOP.with_volume(**music_setting as f32 / 100.),
-    ));
-    commands.insert_resource(MusicController(handle));
+    commands.spawn((
+        AudioBundle {
+            source: audio_assets.music.clone(),
+            settings: PlaybackSettings::LOOP.with_volume(**music_setting as f32 / 100.),
+        },
+        MusicController,
+    ))
 }
 
 fn game_over(
