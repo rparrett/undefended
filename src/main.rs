@@ -1,5 +1,8 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
+#[cfg(feature = "debugdump")]
+use std::{fs::File, io::Write};
+
 use bevy::{
     audio::Volume, core_pipeline::clear_color::ClearColorConfig, pbr::CascadeShadowConfigBuilder,
     prelude::*,
@@ -127,7 +130,7 @@ fn main() {
     app.add_state::<GameState>().add_event::<SpawnPlayerEvent>();
 
     // TODO we may need apply_deferred somewhere in here
-    app.configure_set(Update, AfterPhysics.after(PhysicsSet::Writeback));
+    app.configure_set(PostUpdate, AfterPhysics.after(PhysicsSet::Writeback));
 
     app.add_systems(OnEnter(GameState::Playing), setup)
         .add_systems(
@@ -147,14 +150,14 @@ fn main() {
         )
         .add_systems(Update, apply_controls.in_set(TnuaUserControlsSystemSet))
         .add_systems(
-            Update,
+            PostUpdate,
             update_camera
                 .in_set(AfterPhysics)
                 .run_if(in_state(GameState::Playing))
                 .before(DollyUpdateSet),
         )
         .add_systems(
-            Update,
+            PostUpdate,
             reset_item_on_grab
                 .in_set(AfterPhysics)
                 .run_if(in_state(GameState::Playing)),
@@ -166,10 +169,7 @@ fn main() {
     app.add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(TnuaPlatformerPlugin)
         .add_plugins(TnuaRapier3dPlugin)
-        .add_systems(
-            Update,
-            Dolly::<MainCamera>::update_active.in_set(DollyUpdateSet),
-        )
+        .add_systems(PostUpdate, Dolly::<MainCamera>::update_active)
         .add_plugins(InputManagerPlugin::<Action>::default())
         .insert_resource(InputMapping {
             keyboard_navigation: true,
@@ -208,9 +208,13 @@ fn main() {
         };
 
         let dot = bevy_mod_debugdump::schedule_graph_dot(&mut app, Update, &settings);
-        println!("{dot}");
+        let mut f = File::create("debugdump_update.dot").unwrap();
+        f.write_all(dot.as_bytes()).unwrap();
+
+        return;
     }
 
+    #[cfg(not(feature = "debugdump"))]
     app.run();
 }
 
