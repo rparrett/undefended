@@ -20,6 +20,7 @@ pub struct Target(pub Option<Entity>);
 #[derive(Component, Debug, Default)]
 pub struct InRange(pub HashSet<Entity>);
 
+#[derive(Event)]
 pub struct SpawnTowerEvent(pub UVec2);
 
 #[derive(Component)]
@@ -63,22 +64,24 @@ impl Plugin for TowerPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<SpawnTowerEvent>()
             .init_resource::<LaserMaterial>()
-            .add_system(spawn.in_set(OnUpdate(GameState::Playing)))
-            .add_system(ranging.in_set(OnUpdate(GameState::Playing)))
-            .add_system(
+            .add_systems(Update, spawn.run_if(in_state(GameState::Playing)))
+            .add_systems(Update, ranging.run_if(in_state(GameState::Playing)))
+            .add_systems(
+                Update,
                 targeting
-                    .in_set(OnUpdate(GameState::Playing))
+                    .run_if(in_state(GameState::Playing))
                     .after(ranging),
             )
-            .add_system(
+            .add_systems(
+                Update,
                 shooting
-                    .in_set(OnUpdate(GameState::Playing))
+                    .run_if(in_state(GameState::Playing))
                     .after(targeting),
             )
-            .add_system(movement.in_set(OnUpdate(GameState::Playing)))
-            .add_system(laser_movement.in_set(OnUpdate(GameState::Playing)))
-            .add_system(build_sound.in_set(OnUpdate(GameState::Playing)))
-            .add_system(laser_sound.in_set(OnUpdate(GameState::Playing)));
+            .add_systems(Update, movement.run_if(in_state(GameState::Playing)))
+            .add_systems(Update, laser_movement.run_if(in_state(GameState::Playing)))
+            .add_systems(Update, build_sound.run_if(in_state(GameState::Playing)))
+            .add_systems(Update, laser_sound.run_if(in_state(GameState::Playing)));
     }
 }
 
@@ -222,8 +225,8 @@ fn spawn(mut commands: Commands, mut events: EventReader<SpawnTowerEvent>, model
 }
 
 fn build_sound(
+    mut commands: Commands,
     mut events: EventReader<SpawnTowerEvent>,
-    audio: Res<Audio>,
     game_audio: Res<Sounds>,
     audio_setting: Res<SfxSetting>,
 ) {
@@ -231,10 +234,10 @@ fn build_sound(
         return;
     }
 
-    audio.play_with_settings(
-        game_audio.build.clone(),
-        PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
-    );
+    commands.spawn(AudioBundle {
+        source: game_audio.build.clone(),
+        settings: PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
+    });
 }
 
 fn shooting(
@@ -318,17 +321,17 @@ fn laser_movement(
 }
 
 fn laser_sound(
+    mut commands: Commands,
     query: Query<&Ammo, Changed<Ammo>>,
-    audio: Res<Audio>,
     game_audio: Res<Sounds>,
     audio_setting: Res<SfxSetting>,
 ) {
     for ammo in query.iter() {
         if ammo.current == 0 {
-            audio.play_with_settings(
-                game_audio.powerdown.clone(),
-                PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
-            );
+            commands.spawn(AudioBundle {
+                source: game_audio.powerdown.clone(),
+                settings: PlaybackSettings::ONCE.with_volume(**audio_setting as f32 / 100.),
+            });
         }
     }
 }

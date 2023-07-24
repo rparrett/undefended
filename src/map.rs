@@ -139,11 +139,17 @@ impl MovingFloorDirection {
 
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(spawn_map.in_schedule(OnEnter(GameState::Playing)))
-            .add_system(moving_floor.in_set(OnUpdate(GameState::Playing)))
-            .add_system(item_spawner.in_set(OnUpdate(GameState::Playing)))
-            .add_system(item_spawner_reset.in_set(OnUpdate(GameState::Playing)))
-            .add_system(item_idle_movement.in_set(OnUpdate(GameState::Playing)));
+        app.add_systems(OnEnter(GameState::Playing), spawn_map)
+            .add_systems(Update, moving_floor.run_if(in_state(GameState::Playing)))
+            .add_systems(Update, item_spawner.run_if(in_state(GameState::Playing)))
+            .add_systems(
+                Update,
+                item_spawner_reset.run_if(in_state(GameState::Playing)),
+            )
+            .add_systems(
+                Update,
+                item_idle_movement.run_if(in_state(GameState::Playing)),
+            );
     }
 }
 
