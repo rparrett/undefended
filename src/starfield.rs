@@ -1,7 +1,10 @@
 use bevy::{
     prelude::*,
     reflect::{TypePath, TypeUuid},
-    render::render_resource::{AsBindGroup, ShaderRef},
+    render::{
+        render_resource::{AsBindGroup, ShaderRef},
+        view::RenderLayers,
+    },
     sprite::{Material2d, Material2dPlugin, MaterialMesh2dBundle},
     window::PrimaryWindow,
 };
@@ -28,6 +31,8 @@ fn setup(
 ) {
     let window = windows.single();
 
+    let layer = RenderLayers::layer(1);
+
     commands.spawn((
         Camera2dBundle {
             camera: Camera {
@@ -36,6 +41,7 @@ fn setup(
             },
             ..default()
         },
+        layer,
         Persist,
     ));
 
@@ -49,6 +55,7 @@ fn setup(
             ..default()
         },
         Starfield,
+        layer,
         Persist,
     ));
 }
