@@ -2,6 +2,7 @@ use std::{f32::consts::FRAC_PI_2, fmt::Display, time::Duration};
 
 use bevy::{prelude::*, utils::HashSet};
 use bevy_rapier3d::prelude::*;
+use bevy_tnua::TnuaPipelineStages;
 use rand::{seq::SliceRandom, thread_rng, Rng};
 
 use crate::{loading::Models, GameState};
@@ -140,7 +141,14 @@ impl MovingFloorDirection {
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::Playing), spawn_map)
-            .add_systems(Update, moving_floor.run_if(in_state(GameState::Playing)))
+            // This must run before `TnuaPipelineStages::Sensors` or the player's movement
+            // will not match up with the moving platform.
+            .add_systems(
+                Update,
+                moving_floor
+                    .run_if(in_state(GameState::Playing))
+                    .before(TnuaPipelineStages::Sensors),
+            )
             .add_systems(Update, item_spawner.run_if(in_state(GameState::Playing)))
             .add_systems(
                 Update,
@@ -226,7 +234,7 @@ fn spawn_map(
                         direction: MovingFloorDirection::Forward,
                         dwell_timer: Timer::new(Duration::from_secs_f32(1.), TimerMode::Once),
                     },
-                    RigidBody::KinematicPositionBased,
+                    RigidBody::KinematicVelocityBased,
                     Velocity::default(),
                 ));
             }
@@ -279,10 +287,10 @@ fn spawn_map(
 }
 
 fn moving_floor(
-    mut query: Query<(&mut Transform, &mut MovingFloor), With<MovingFloor>>,
+    mut query: Query<(&mut Transform, &mut Velocity, &mut MovingFloor), With<MovingFloor>>,
     time: Res<Time>,
 ) {
-    for (mut transform, mut floor) in query.iter_mut() {
+    for (mut transform, mut velocity, mut floor) in query.iter_mut() {
         match floor.state {
             MovingFloorState::Dwell => {
                 floor.dwell_timer.tick(time.delta());
@@ -297,18 +305,21 @@ fn moving_floor(
                     let diff = world - (transform.translation);
                     let dist = diff.length();
 
+                    // This is slightly janky.
+                    //
+                    // It would be nice for the platform to be a RigidBody::KinematicPositionBased,
+                    // but this is incompatible with `bevy_tnua`.
+                    //
+                    // See https://github.com/idanarye/bevy-tnua/issues/28.
+
                     let step = floor.speed * time.delta_seconds();
+                    let adjusted_speed = floor.speed * (dist / step).min(1.);
 
-                    if step < dist {
-                        transform.translation.x +=
-                            step / dist * (world.x - transform.translation.x);
-                        transform.translation.z +=
-                            step / dist * (world.z - transform.translation.z);
-                    } else {
-                        transform.translation.x = world.x;
-                        transform.translation.z = world.z;
-
+                    if dist < 0.01 {
+                        velocity.linvel = Vec3::ZERO;
                         floor.advance();
+                    } else {
+                        velocity.linvel = diff.normalize_or_zero() * adjusted_speed;
                     }
                 } else {
                     floor.state = MovingFloorState::Dwell;
