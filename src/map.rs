@@ -287,10 +287,10 @@ fn spawn_map(
 }
 
 fn moving_floor(
-    mut query: Query<(&mut Transform, &mut Velocity, &mut MovingFloor), With<MovingFloor>>,
+    mut query: Query<(&Transform, &mut Velocity, &mut MovingFloor), With<MovingFloor>>,
     time: Res<Time>,
 ) {
-    for (mut transform, mut velocity, mut floor) in query.iter_mut() {
+    for (transform, mut velocity, mut floor) in query.iter_mut() {
         match floor.state {
             MovingFloorState::Dwell => {
                 floor.dwell_timer.tick(time.delta());
@@ -302,7 +302,7 @@ fn moving_floor(
             MovingFloorState::Move => {
                 if let Some(next_waypoint) = floor.next_waypoint() {
                     let world = map_to_world(next_waypoint) + Vec3::Y * -0.5;
-                    let diff = world - (transform.translation);
+                    let diff = world - transform.translation;
                     let dist = diff.length();
 
                     // This is slightly janky.
