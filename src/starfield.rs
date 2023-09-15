@@ -1,12 +1,16 @@
 use bevy::{
+    core_pipeline::fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE,
     prelude::*,
     reflect::{TypePath, TypeUuid},
     render::{
-        render_resource::{AsBindGroup, ShaderRef},
+        mesh::MeshVertexBufferLayout,
+        render_resource::{
+            AsBindGroup, PrimitiveState, RenderPipelineDescriptor, ShaderRef,
+            SpecializedMeshPipelineError,
+        },
         view::RenderLayers,
     },
-    sprite::{Material2d, Material2dPlugin, MaterialMesh2dBundle},
-    window::PrimaryWindow,
+    sprite::{Material2d, Material2dKey, Material2dPlugin, MaterialMesh2dBundle},
 };
 
 use crate::{GameState, Persist, Player};
@@ -27,10 +31,7 @@ fn setup(
     mut commands: Commands,
     mut mat2d: ResMut<Assets<StarfieldMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    windows: Query<&Window, With<PrimaryWindow>>,
 ) {
-    let window = windows.single();
-
     let layer = RenderLayers::layer(1);
 
     commands.spawn((
@@ -48,11 +49,8 @@ fn setup(
 
     commands.spawn((
         MaterialMesh2dBundle {
-            mesh: meshes
-                .add(shape::Quad::new(Vec2::new(window.width(), window.height())).into())
-                .into(),
+            mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
             material: mat2d.add(StarfieldMaterial::default()),
-            transform: Transform::from_translation(Vec3::ZERO),
             ..default()
         },
         Starfield,
@@ -73,8 +71,22 @@ fn move_starfield(
 }
 
 impl Material2d for StarfieldMaterial {
+    fn vertex_shader() -> ShaderRef {
+        FULLSCREEN_SHADER_HANDLE.typed().into()
+    }
+
     fn fragment_shader() -> ShaderRef {
         "shaders/starfield.wgsl".into()
+    }
+
+    fn specialize(
+        descriptor: &mut RenderPipelineDescriptor,
+        _: &MeshVertexBufferLayout,
+        _: Material2dKey<Self>,
+    ) -> Result<(), SpecializedMeshPipelineError> {
+        descriptor.primitive = PrimitiveState::default();
+        descriptor.vertex.entry_point = "fullscreen_vertex_shader".into();
+        Ok(())
     }
 }
 
