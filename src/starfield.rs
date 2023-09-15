@@ -65,7 +65,7 @@ fn move_starfield(
 ) {
     for player in query.iter() {
         for mat in materials.iter_mut() {
-            mat.1.pos = Vec2::new(player.translation.x, player.translation.z);
+            mat.1.pos = player.translation.truncate()
         }
     }
 }
