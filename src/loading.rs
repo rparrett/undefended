@@ -73,7 +73,10 @@ pub struct Images {
 
 struct PipelineStatus(Receiver<bool>);
 
+#[cfg(not(target_arch = "wasm32"))]
 const EXPECTED_PIPELINES: usize = 10;
+#[cfg(target_arch = "wasm32")]
+const EXPECTED_PIPELINES: usize = 9;
 
 impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
