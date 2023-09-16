@@ -1,7 +1,8 @@
 use bevy::{
+    pbr::CascadeShadowConfigBuilder,
     prelude::*,
     render::{
-        render_resource::{CachedPipelineState, PipelineCache},
+        render_resource::{CachedPipelineState, PipelineCache, PipelineDescriptor},
         Render, RenderApp, RenderSet,
     },
 };
@@ -74,9 +75,9 @@ pub struct Images {
 struct PipelineStatus(Receiver<bool>);
 
 #[cfg(not(target_arch = "wasm32"))]
-const EXPECTED_PIPELINES: usize = 10;
+const EXPECTED_PIPELINES: usize = 14;
 #[cfg(target_arch = "wasm32")]
-const EXPECTED_PIPELINES: usize = 9;
+const EXPECTED_PIPELINES: usize = 12;
 
 impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
@@ -124,11 +125,58 @@ impl Plugin for LoadingPlugin {
     }
 }
 
-fn setup_pipelines(mut commands: Commands, models: Res<Models>) {
+fn setup_pipelines(
+    mut commands: Commands,
+    models: Res<Models>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+) {
+    commands.spawn((
+        PipelinesMarker,
+        TextBundle::from_section("Loading Pipelines...".to_string(), TextStyle::default()),
+    ));
+
+    // Spawn enough things to trigger the creation of all the pipelines required for the
+    // game.
+
     commands.spawn((
         PipelinesMarker,
         SceneBundle {
             scene: models.player.clone(),
+            ..default()
+        },
+    ));
+
+    let path_mat = materials.add(StandardMaterial {
+        base_color: Color::rgba(1.0, 0.0, 0.0, 0.3),
+        alpha_mode: AlphaMode::Blend,
+        ..default()
+    });
+
+    commands.spawn((
+        PipelinesMarker,
+        PbrBundle {
+            mesh: meshes.add(Mesh::from(shape::Cube { size: 0.25 })),
+            material: path_mat.clone(),
+            ..default()
+        },
+    ));
+
+    commands.spawn((
+        PipelinesMarker,
+        DirectionalLightBundle {
+            directional_light: DirectionalLight {
+                illuminance: 2500.0,
+                shadows_enabled: true,
+                ..default()
+            },
+            transform: Transform::from_rotation(Quat::from_euler(EulerRot::YXZ, -1.0, -1.0, -1.0)),
+            cascade_shadow_config: CascadeShadowConfigBuilder {
+                first_cascade_far_bound: 4.0,
+                maximum_distance: 30.0,
+                ..default()
+            }
+            .into(),
             ..default()
         },
     ));
