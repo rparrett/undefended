@@ -2,7 +2,7 @@ use bevy::{
     pbr::CascadeShadowConfigBuilder,
     prelude::*,
     render::{
-        render_resource::{CachedPipelineState, PipelineCache, PipelineDescriptor},
+        render_resource::{CachedPipelineState, PipelineCache},
         Render, RenderApp, RenderSet,
     },
 };
