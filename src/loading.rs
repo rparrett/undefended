@@ -71,7 +71,6 @@ pub struct Images {
 }
 
 #[derive(Resource)]
-
 struct PipelineStatus(Receiver<bool>);
 
 #[cfg(not(target_arch = "wasm32"))]
