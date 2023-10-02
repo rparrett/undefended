@@ -816,8 +816,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_mod_debugdump"
-version = "0.8.0"
-source = "git+https://github.com/rparrett/bevy_mod_debugdump?branch=minimal-fix-18#96e458a752c75caf1e09a7f9f9f351b5e1676f7b"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85741df1a1a2aa03ecd2d9f70ba8787846c6b2b91b82ef85f71ed56f87591b15"
 dependencies = [
  "bevy_app",
  "bevy_ecs",
