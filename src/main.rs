@@ -736,6 +736,7 @@ fn start_music(
                 .with_volume(Volume::new_absolute(**music_setting as f32 / 100.)),
         },
         MusicController,
+        Persist,
     ));
 }
 
