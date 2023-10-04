@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2 (2023-10-04)
+
+* Fix music stopping when returning to the main menu.
+
 ## 0.2.1 (2023-10-03)
 
 * Upgraded to Bevy 0.11.
