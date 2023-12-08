@@ -154,7 +154,7 @@ fn setup_menu(
             },
             Focusable::default(),
             MenuButton::Difficulty,
-            SfxSettingButton,
+            DifficultySettingButton,
         ))
         .with_children(|parent| {
             parent.spawn((
