@@ -22,7 +22,6 @@ impl Plugin for GameOverPlugin {
 
 #[derive(Component)]
 struct GameOverMarker;
-
 #[derive(Component)]
 struct PlayAgainButton;
 #[derive(Component)]
