@@ -1,7 +1,7 @@
 use bevy::{
     core_pipeline::fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE,
     prelude::*,
-    reflect::{TypePath, TypeUuid},
+    reflect::TypePath,
     render::{
         mesh::MeshVertexBufferLayout,
         render_resource::{
@@ -72,7 +72,7 @@ fn move_starfield(
 
 impl Material2d for StarfieldMaterial {
     fn vertex_shader() -> ShaderRef {
-        FULLSCREEN_SHADER_HANDLE.typed().into()
+        FULLSCREEN_SHADER_HANDLE.into()
     }
 
     fn fragment_shader() -> ShaderRef {
@@ -90,8 +90,7 @@ impl Material2d for StarfieldMaterial {
     }
 }
 
-#[derive(AsBindGroup, TypeUuid, TypePath, Debug, Default, Clone)]
-#[uuid = "1e0463f0-c315-4d84-bf54-f7a1abf93ff5"]
+#[derive(Asset, AsBindGroup, TypePath, Debug, Default, Clone)]
 pub struct StarfieldMaterial {
     #[uniform(0)]
     pub pos: Vec2,

@@ -11,10 +11,8 @@ use bevy_dolly::prelude::*;
 #[cfg(feature = "inspector")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
-use bevy_tnua::{
-    TnuaFreeFallBehavior, TnuaPlatformerBundle, TnuaPlatformerConfig, TnuaPlatformerControls,
-    TnuaPlatformerPlugin, TnuaRapier3dPlugin, TnuaRapier3dSensorShape, TnuaUserControlsSystemSet,
-};
+use bevy_tnua::prelude::*;
+use bevy_tnua_rapier3d::{TnuaRapier3dIOBundle, TnuaRapier3dPlugin, TnuaRapier3dSensorShape};
 use bevy_ui_navigation::{systems::InputMapping, DefaultNavigationPlugins};
 use game_over::GameOverPlugin;
 use leafwing_input_manager::prelude::*;
@@ -130,7 +128,7 @@ fn main() {
     app.add_state::<GameState>().add_event::<SpawnPlayerEvent>();
 
     // TODO we may need apply_deferred somewhere in here
-    app.configure_set(
+    app.configure_sets(
         PostUpdate,
         AfterPhysics
             .after(PhysicsSet::Writeback)
@@ -171,7 +169,7 @@ fn main() {
         .add_systems(OnExit(GameState::GameOver), reset);
 
     app.add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
-        .add_plugins(TnuaPlatformerPlugin)
+        .add_plugins(TnuaControllerPlugin)
         .add_plugins(TnuaRapier3dPlugin)
         .add_systems(
             PostUpdate,
@@ -282,7 +280,7 @@ fn setup_camera(mut commands: Commands) {
 
 fn apply_controls(
     action_state_query: Query<&ActionState<Action>, With<Player>>,
-    mut query: Query<&mut TnuaPlatformerControls>,
+    mut query: Query<&mut TnuaController>,
 ) {
     let Ok(action_state) = action_state_query.get_single() else {
         return;
@@ -301,17 +299,34 @@ fn apply_controls(
     }
 
     let normalized = direction.normalize_or_zero();
-    let clamped = direction.clamp_length_max(1.);
+    let with_speed = normalized * 4.3;
+    // let clamped = direction.clamp_length_max(1.);
 
     let jump = action_state.pressed(Action::Jump);
 
     for mut controls in query.iter_mut() {
-        *controls = TnuaPlatformerControls {
-            desired_velocity: if turn_in_place { Vec3::ZERO } else { clamped },
+        controls.basis(TnuaBuiltinWalk {
+            desired_velocity: if turn_in_place {
+                Vec3::ZERO
+            } else {
+                with_speed
+            },
             desired_forward: normalized,
-            jump: jump.then_some(1.0),
-            float_height_offset: 0.0,
-        };
+            float_height: 1.0,
+            cling_distance: 0.5,
+            acceleration: 50.0,
+            air_acceleration: 10.0,
+            turning_angvel: 5.0,
+            ..default()
+        });
+
+        if jump {
+            controls.action(TnuaBuiltinJump {
+                height: 2.0,
+                shorten_extra_gravity: 40.0,
+                ..default()
+            });
+        }
     }
 }
 
@@ -335,7 +350,7 @@ fn cursor(
     floor_query: Query<(Entity, &TilePos), With<Floor>>,
     mut selected_tile_query: Query<&mut SelectedTile>,
 ) {
-    for evt in collision_events.iter() {
+    for evt in collision_events.read() {
         match evt {
             CollisionEvent::Started(e1, e2, _) => {
                 let cursor = cursor_query.iter_many([e1, e2]).next();
@@ -369,7 +384,7 @@ fn item_probe(
     item_query: Query<Entity, With<Item>>,
     mut selected_item_query: Query<&mut SelectedItem>,
 ) {
-    for evt in collision_events.iter() {
+    for evt in collision_events.read() {
         match evt {
             CollisionEvent::Started(e1, e2, _) => {
                 let probe = probe_query.iter_many([e1, e2]).next();
@@ -401,7 +416,7 @@ fn track_last_tile(
     floor_query: Query<&TilePos, (With<Floor>, Without<MovingFloor>)>,
     mut last_tile_query: Query<&mut LastTile>,
 ) {
-    for evt in collision_events.iter() {
+    for evt in collision_events.read() {
         if let CollisionEvent::Started(e1, e2, _) = evt {
             let probe = probe_query.iter_many([e1, e2]).next();
             let floor = floor_query.iter_many([e1, e2]).next();
@@ -423,7 +438,7 @@ fn lava(
     item_query: Query<Entity, With<Item>>,
     tower_query: Query<&TilePos, With<Tower>>,
 ) {
-    for evt in collision_events.iter() {
+    for evt in collision_events.read() {
         if let CollisionEvent::Started(e1, e2, _) = evt {
             let lava = lava_query.iter_many([e1, e2]).next();
             let mut player_iter = player_query.iter_many_mut([e1, e2]);
@@ -452,7 +467,7 @@ fn spawn_player(
     mut events: EventReader<SpawnPlayerEvent>,
     models: Res<Models>,
 ) {
-    for event in events.iter() {
+    for event in events.read() {
         commands
             .spawn((
                 Player,
@@ -470,38 +485,6 @@ fn spawn_player(
                 LastTile(event.0),
                 SelectedTile(None),
                 SelectedItem(None),
-                TnuaRapier3dSensorShape(Collider::cylinder(0.0, 0.49)),
-                TnuaPlatformerBundle {
-                    config: TnuaPlatformerConfig {
-                        full_speed: 4.3,
-                        full_jump_height: 2.0,
-                        up: Vec3::Y,
-                        forward: -Vec3::Z,
-                        float_height: 1.0,
-                        cling_distance: 0.5,
-                        spring_strengh: 400.0,
-                        spring_dampening: 1.2,
-                        acceleration: 50.0,
-                        air_acceleration: 10.0,
-                        coyote_time: 0.15,
-                        free_fall_behavior: TnuaFreeFallBehavior::LikeJumpShorten,
-                        tilt_offset_angvel: 5.0,
-                        tilt_offset_angacl: 500.0,
-                        turning_angvel: 5.0,
-                        height_change_impulse_for_duration: 0.02,
-                        height_change_impulse_limit: 40.0,
-                        held_jump_cooldown: None,
-                        upslope_jump_extra_gravity: 30.0,
-                        jump_fall_extra_gravity: 20.0,
-                        jump_shorten_extra_gravity: 40.0,
-                        jump_input_buffer_time: 0.2,
-                        jump_peak_prevention_at_upward_velocity: 1.0,
-                        jump_peak_prevention_extra_gravity: 20.0,
-                        jump_takeoff_extra_gravity: 30.0,
-                        jump_takeoff_above_velocity: 2.0,
-                    },
-                    ..default()
-                },
                 InputManagerBundle::<Action> {
                     action_state: ActionState::default(),
                     input_map: InputMap::default()
@@ -530,6 +513,11 @@ fn spawn_player(
                         )
                         .build(),
                 },
+            ))
+            .insert((
+                TnuaRapier3dIOBundle::default(),
+                TnuaControllerBundle::default(),
+                TnuaRapier3dSensorShape(Collider::cylinder(0.0, 0.49)),
             ))
             .with_children(|parent| {
                 parent.spawn(SceneBundle {

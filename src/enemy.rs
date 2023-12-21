@@ -43,7 +43,7 @@ impl Plugin for EnemyPlugin {
 }
 
 fn spawn(mut commands: Commands, models: Res<Models>, mut events: EventReader<SpawnEnemyEvent>) {
-    for event in events.iter() {
+    for event in events.read() {
         commands.spawn((
             Enemy,
             Name::new("Enemy"),

@@ -119,7 +119,7 @@ fn ranging(
     mut tower_query: Query<&mut InRange, With<Tower>>,
     enemy_query: Query<Entity, With<Enemy>>,
 ) {
-    for evt in collision_events.iter() {
+    for evt in collision_events.read() {
         match evt {
             CollisionEvent::Started(e1, e2, _) => {
                 let range_sensor = range_sensor_query.iter_many([e1, e2]).next();
@@ -183,7 +183,7 @@ fn targeting(
 }
 
 fn spawn(mut commands: Commands, mut events: EventReader<SpawnTowerEvent>, models: Res<Models>) {
-    for event in events.iter() {
+    for event in events.read() {
         commands
             .spawn((
                 Tower,
@@ -231,7 +231,7 @@ fn build_sound(
     game_audio: Res<Sounds>,
     audio_setting: Res<SfxSetting>,
 ) {
-    if events.iter().count() == 0 {
+    if events.read().count() == 0 {
         return;
     }
 
