@@ -1,13 +1,6 @@
-use bevy::{
-    pbr::CascadeShadowConfigBuilder,
-    prelude::*,
-    render::{
-        render_resource::{CachedPipelineState, PipelineCache},
-        Render, RenderApp, RenderSet,
-    },
-};
+use bevy::{pbr::CascadeShadowConfigBuilder, prelude::*};
 use bevy_asset_loader::prelude::*;
-use crossbeam_channel::Receiver;
+use bevy_pipelines_ready::{PipelinesReady, PipelinesReadyPlugin};
 
 use crate::GameState;
 
@@ -70,57 +63,27 @@ pub struct Images {
     pub heart: Handle<Image>,
 }
 
-#[derive(Resource)]
-struct PipelineStatus(Receiver<bool>);
-
 #[cfg(not(target_arch = "wasm32"))]
-const EXPECTED_PIPELINES: usize = 14;
+const EXPECTED_PIPELINES: usize = 15;
 #[cfg(target_arch = "wasm32")]
-const EXPECTED_PIPELINES: usize = 12;
+const EXPECTED_PIPELINES: usize = 13;
 
 impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
-        let (tx, rx) = crossbeam_channel::bounded(1);
-
-        app.insert_resource(PipelineStatus(rx));
-
-        app.add_loading_state(
-            LoadingState::new(GameState::Loading).continue_to_state(GameState::Pipelines),
-        )
-        .add_collection_to_loading_state::<_, Models>(GameState::Loading)
-        .add_collection_to_loading_state::<_, Fonts>(GameState::Loading)
-        .add_collection_to_loading_state::<_, Images>(GameState::Loading)
-        .add_collection_to_loading_state::<_, Sounds>(GameState::Loading)
-        .add_systems(
-            Update,
-            pipelines_done.run_if(in_state(GameState::Pipelines)),
-        )
-        .add_systems(OnExit(GameState::Pipelines), cleanup)
-        .add_systems(OnEnter(GameState::Pipelines), setup_pipelines);
-
-        let renderer_app = app.sub_app_mut(RenderApp);
-        let mut done = false;
-        renderer_app.add_systems(
-            Render,
-            (move |cache: Res<PipelineCache>| {
-                if done {
-                    return;
-                }
-
-                let ready = cache
-                    .pipelines()
-                    .filter(|pipeline| matches!(pipeline.state, CachedPipelineState::Ok(_)))
-                    .count();
-
-                debug!("pipelines ready: {}/{}", ready, EXPECTED_PIPELINES);
-
-                if ready >= EXPECTED_PIPELINES {
-                    let _ = tx.send(true);
-                    done = true
-                }
-            })
-            .in_set(RenderSet::Cleanup),
-        );
+        app.add_plugins(PipelinesReadyPlugin)
+            .add_loading_state(
+                LoadingState::new(GameState::Loading).continue_to_state(GameState::Pipelines),
+            )
+            .add_collection_to_loading_state::<_, Models>(GameState::Loading)
+            .add_collection_to_loading_state::<_, Fonts>(GameState::Loading)
+            .add_collection_to_loading_state::<_, Images>(GameState::Loading)
+            .add_collection_to_loading_state::<_, Sounds>(GameState::Loading)
+            .add_systems(
+                Update,
+                pipelines_done.run_if(in_state(GameState::Pipelines)),
+            )
+            .add_systems(OnExit(GameState::Pipelines), cleanup)
+            .add_systems(OnEnter(GameState::Pipelines), setup_pipelines);
     }
 }
 
@@ -181,8 +144,10 @@ fn setup_pipelines(
     ));
 }
 
-fn pipelines_done(status: Res<PipelineStatus>, mut next_state: ResMut<NextState<GameState>>) {
-    if status.0.try_recv().unwrap_or_default() {
+fn pipelines_done(ready: Res<PipelinesReady>, mut next_state: ResMut<NextState<GameState>>) {
+    info!("Pipelines Ready: {}/{}", ready.get(), EXPECTED_PIPELINES);
+
+    if ready.get() >= EXPECTED_PIPELINES {
         next_state.set(GameState::MainMenu);
     }
 }

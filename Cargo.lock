@@ -1037,6 +1037,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_pipelines_ready"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94fe26d15e33fbf25ce55ff52bec28f0cc6a5feeb83031e0022c7df9e3462359"
+dependencies = [
+ "bevy",
+ "crossbeam-channel",
+]
+
+[[package]]
 name = "bevy_ptr"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4011,8 +4021,8 @@ dependencies = [
  "bevy_asset_loader",
  "bevy_dolly",
  "bevy_mod_debugdump",
+ "bevy_pipelines_ready",
  "bevy_rapier3d",
- "crossbeam-channel",
  "leafwing-input-manager",
  "rand",
  "ron",
