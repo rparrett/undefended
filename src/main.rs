@@ -252,19 +252,14 @@ fn setup(mut commands: Commands, mut spawn_player_events: EventWriter<SpawnPlaye
 }
 
 fn setup_camera(mut commands: Commands) {
-    // camera
     commands.spawn((
         MainCamera,
         Rig::builder()
             .with(Position::new(Vec3::ZERO))
-            //.with(Rotation::new(Quat::IDENTITY))
-            //.with(Smooth::new_position(1.25).predictive(true))
             .with(Smooth::new_position(0.25))
             .with(Arm::new(CAMERA_OFFSET))
             .with(Smooth::new_position(0.25))
-            .with(
-                LookAt::new(Vec3::ZERO + Vec3::Y).tracking_smoothness(0.25), //.tracking_predictive(true),
-            )
+            .with(LookAt::new(Vec3::ZERO + Vec3::Y).tracking_smoothness(0.25))
             .build(),
         Camera3dBundle {
             transform: Transform::from_translation(CAMERA_OFFSET).looking_at(Vec3::ZERO, Vec3::Y),
@@ -300,7 +295,6 @@ fn apply_controls(
 
     let normalized = direction.normalize_or_zero();
     let with_speed = normalized * 4.3;
-    // let clamped = direction.clamp_length_max(1.);
 
     let jump = action_state.pressed(Action::Jump);
 
