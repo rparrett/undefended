@@ -201,8 +201,8 @@ fn main() {
 
     #[cfg(feature = "inspector")]
     {
-        app.add_plugin(WorldInspectorPlugin::new());
-        app.add_plugin(RapierDebugRenderPlugin::default());
+        app.add_plugins(WorldInspectorPlugin::new());
+        app.add_plugins(RapierDebugRenderPlugin::default());
         app.register_type::<SelectedTile>();
         app.register_type::<SelectedItem>();
     }
