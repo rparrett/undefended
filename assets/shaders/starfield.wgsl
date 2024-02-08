@@ -11,9 +11,9 @@ var<uniform> material: StarfieldMaterial;
 
 
 fn hash22(p: vec2<f32>) -> vec2<f32> {
-	var p3: vec3<f32> = fract(vec3<f32>(p.xyx) * vec3<f32>(0.1031, 0.103, 0.0973));
-	p3 = p3 + (dot(p3, p3.yzx + 19.19));
-	return fract((p3.xx + p3.yz) * p3.zy);
+    var p3: vec3<f32> = fract(vec3<f32>(p.xyx) * vec3<f32>(0.1031, 0.103, 0.0973));
+    p3 = p3 + (dot(p3, p3.yzx + 19.19));
+    return fract((p3.xx + p3.yz) * p3.zy);
 }
 
 fn noise(p: vec2<f32>) -> f32 {
@@ -43,25 +43,25 @@ fn noise(p: vec2<f32>) -> f32 {
 }
 
 fn starfield(samplePosition: vec2<f32>, threshold: f32) -> vec3<f32> {
-	let starValue: f32 = noise(samplePosition);
-	var power: f32 = max(1. - starValue / threshold, 0.);
-	power = power * power * power;
+    let starValue: f32 = noise(samplePosition);
+    var power: f32 = max(1. - starValue / threshold, 0.);
+    power = power * power * power;
 
-	return vec3<f32>(power);
+    return vec3<f32>(power);
 }
 
 @fragment
 fn fragment(
     in: FullscreenVertexOutput,
 ) -> @location(0) vec4<f32> {
-	var finalColor: vec3<f32>;
+    var finalColor: vec3<f32>;
 
     let pos = material.pos / vec2<f32>(-100., 100.);
     let threshold = 0.0003;
 
-	for (var i: i32 = 1; i <= 7; i = i + 1) {
-		let layer: f32 = f32(i);
-		let inv: f32 = sqrt(1. / layer);
+    for (var i: i32 = 1; i <= 7; i = i + 1) {
+        let layer: f32 = f32(i);
+        let inv: f32 = sqrt(1. / layer);
 
         let layer_offset = vec2<f32>(layer * 100., -layer * 50.);
         let layer_zoom = (1. + layer * 0.6) / 500.;
@@ -70,15 +70,15 @@ fn fragment(
 
         let starfield_coords = (in.position.xy + layer_offset) * layer_zoom - pos * layer_speed;
 
-		finalColor = finalColor + (starfield(starfield_coords, threshold) * layer_brightness);
-	}
+        finalColor = finalColor + (starfield(starfield_coords, threshold) * layer_brightness);
+    }
 
     // Hack: this ensures the push constant is always used, which works around this issue:
     // https://github.com/bevyengine/bevy/issues/10509
     // This can be probably be removed after Bevy 0.13 is released.
     finalColor.x += min(f32(get_instance_index(0u)), 0.0);
 
-	let fragColor = vec4<f32>(finalColor, 1.0);
+    let fragColor = vec4<f32>(finalColor, 1.0);
 
     return fragColor;
 }
