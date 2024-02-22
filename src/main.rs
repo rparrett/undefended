@@ -17,6 +17,7 @@ use bevy_ui_navigation::{systems::InputMapping, DefaultNavigationPlugins};
 use game_over::GameOverPlugin;
 use leafwing_input_manager::prelude::*;
 
+use bevy_get_either::*;
 use enemy::{Enemy, EnemyPlugin};
 use loading::{LoadingPlugin, Models, Sounds};
 use main_menu::MainMenuPlugin;
@@ -347,25 +348,23 @@ fn cursor(
     for evt in collision_events.read() {
         match evt {
             CollisionEvent::Started(e1, e2, _) => {
-                let cursor = cursor_query.iter_many([e1, e2]).next();
-                let floor = floor_query.iter_many([e1, e2]).next();
+                let queries = (&cursor_query, &floor_query);
+                let Some((cursor, (_, tile_pos))) = queries.get_both(*e1, *e2) else {
+                    continue;
+                };
 
-                if let (Some(cursor_entity), Some((_, tile_pos))) = (cursor, floor) {
-                    if let Ok(mut selected_tile) = selected_tile_query.get_mut(cursor_entity.get())
-                    {
-                        selected_tile.0 = Some(tile_pos.0);
-                    }
+                if let Ok(mut selected_tile) = selected_tile_query.get_mut(cursor.get()) {
+                    selected_tile.0 = Some(tile_pos.0);
                 }
             }
             CollisionEvent::Stopped(e1, e2, _) => {
-                let cursor = cursor_query.iter_many([e1, e2]).next();
-                let floor = floor_query.iter_many([e1, e2]).next();
+                let queries = (&cursor_query, &floor_query);
+                let Some((cursor, _)) = queries.get_both(*e1, *e2) else {
+                    continue;
+                };
 
-                if let (Some(cursor_entity), Some(_)) = (cursor, floor) {
-                    if let Ok(mut selected_tile) = selected_tile_query.get_mut(cursor_entity.get())
-                    {
-                        selected_tile.0 = None;
-                    }
+                if let Ok(mut selected_tile) = selected_tile_query.get_mut(cursor.get()) {
+                    selected_tile.0 = None;
                 }
             }
         }
