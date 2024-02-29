@@ -242,7 +242,7 @@ fn setup_menu(
                         color: UI_TEXT,
                     },
                 )
-                .with_alignment(TextAlignment::Right),
+                .with_justify(JustifyText::Right),
                 ..Default::default()
             });
             parent.spawn(TextBundle {

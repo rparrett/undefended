@@ -4,8 +4,7 @@
 use std::{fs::File, io::Write};
 
 use bevy::{
-    audio::Volume, core_pipeline::clear_color::ClearColorConfig, pbr::CascadeShadowConfigBuilder,
-    prelude::*, transform::TransformSystem,
+    audio::Volume, pbr::CascadeShadowConfigBuilder, prelude::*, transform::TransformSystem,
 };
 use bevy_dolly::prelude::*;
 #[cfg(feature = "inspector")]
@@ -13,11 +12,11 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
 use bevy_tnua::prelude::*;
 use bevy_tnua_rapier3d::{TnuaRapier3dIOBundle, TnuaRapier3dPlugin, TnuaRapier3dSensorShape};
+use bevy_two_entities::tuple::TupleQueryExt;
 use bevy_ui_navigation::{systems::InputMapping, DefaultNavigationPlugins};
 use game_over::GameOverPlugin;
 use leafwing_input_manager::prelude::*;
 
-use bevy_get_either::*;
 use enemy::{Enemy, EnemyPlugin};
 use loading::{LoadingPlugin, Models, Sounds};
 use main_menu::MainMenuPlugin;
@@ -264,7 +263,7 @@ fn setup_camera(mut commands: Commands) {
             .build(),
         Camera3dBundle {
             transform: Transform::from_translation(CAMERA_OFFSET).looking_at(Vec3::ZERO, Vec3::Y),
-            camera_3d: Camera3d {
+            camera: Camera {
                 clear_color: ClearColorConfig::None,
                 ..default()
             },
@@ -285,8 +284,8 @@ fn apply_controls(
     let mut direction = Vec3::ZERO;
     let mut turn_in_place = false;
 
-    if action_state.pressed(Action::Run) {
-        let axis_pair = action_state.clamped_axis_pair(Action::Run).unwrap();
+    if action_state.pressed(&Action::Run) {
+        let axis_pair = action_state.clamped_axis_pair(&Action::Run).unwrap();
 
         let vec = Vec3::new(axis_pair.x(), 0., -axis_pair.y());
         turn_in_place = vec.x.abs() < 0.3 && vec.z.abs() < 0.3;
@@ -297,7 +296,7 @@ fn apply_controls(
     let normalized = direction.normalize_or_zero();
     let with_speed = normalized * 4.3;
 
-    let jump = action_state.pressed(Action::Jump);
+    let jump = action_state.pressed(&Action::Jump);
 
     for mut controls in query.iter_mut() {
         controls.basis(TnuaBuiltinWalk {
@@ -380,20 +379,16 @@ fn item_probe(
     for evt in collision_events.read() {
         match evt {
             CollisionEvent::Started(e1, e2, _) => {
-                let probe = probe_query.iter_many([e1, e2]).next();
-                let item = item_query.iter_many([e1, e2]).next();
-
-                if let (Some(probe_entity), Some(item_entity)) = (probe, item) {
+                if let Some((probe_entity, item_entity)) =
+                    (&probe_query, &item_query).get_both(e1, e2)
+                {
                     if let Ok(mut selected_item) = selected_item_query.get_mut(probe_entity.get()) {
                         selected_item.0 = Some(item_entity);
                     }
                 }
             }
             CollisionEvent::Stopped(e1, e2, _) => {
-                let is_probe = probe_query.iter_many([e1, e2]).next().is_some();
-                let is_item = item_query.iter_many([e1, e2]).next().is_some();
-
-                if is_probe && is_item {
+                if (&probe_query, &item_query).both(e1, e2) {
                     for mut selected_item in selected_item_query.iter_mut() {
                         selected_item.0 = None;
                     }
@@ -411,10 +406,7 @@ fn track_last_tile(
 ) {
     for evt in collision_events.read() {
         if let CollisionEvent::Started(e1, e2, _) = evt {
-            let probe = probe_query.iter_many([e1, e2]).next();
-            let floor = floor_query.iter_many([e1, e2]).next();
-
-            if let (Some(probe_entity), Some(tile_pos)) = (probe, floor) {
+            if let Some((probe_entity, tile_pos)) = (&probe_query, &floor_query).get_both(e1, e2) {
                 if let Ok(mut last_tile) = last_tile_query.get_mut(probe_entity.get()) {
                     last_tile.0 = tile_pos.0;
                 }
@@ -433,11 +425,8 @@ fn lava(
 ) {
     for evt in collision_events.read() {
         if let CollisionEvent::Started(e1, e2, _) = evt {
-            let lava = lava_query.iter_many([e1, e2]).next();
-            let mut player_iter = player_query.iter_many_mut([e1, e2]);
-
             if let (Some(_), Some((last_tile, children, mut transform))) =
-                (lava, player_iter.fetch_next())
+                (&lava_query, &player_query).get_both_mut(e1, e2)
             {
                 let pos = if tower_query.iter().any(|pos| pos.0 == last_tile.0) {
                     START_TILE
@@ -488,19 +477,19 @@ fn spawn_player(
                         .insert(DualAxis::left_stick(), Action::Run)
                         .insert(
                             VirtualDPad {
-                                up: QwertyScanCode::W.into(),
-                                down: QwertyScanCode::S.into(),
-                                left: QwertyScanCode::A.into(),
-                                right: QwertyScanCode::D.into(),
+                                up: KeyCode::W.into(),
+                                down: KeyCode::S.into(),
+                                left: KeyCode::A.into(),
+                                right: KeyCode::D.into(),
                             },
                             Action::Run,
                         )
                         .insert(
                             VirtualDPad {
-                                up: QwertyScanCode::Up.into(),
-                                down: QwertyScanCode::Down.into(),
-                                left: QwertyScanCode::Left.into(),
-                                right: QwertyScanCode::Right.into(),
+                                up: KeyCode::Up.into(),
+                                down: KeyCode::Down.into(),
+                                left: KeyCode::Left.into(),
+                                right: KeyCode::Right.into(),
                             },
                             Action::Run,
                         )
@@ -564,7 +553,7 @@ fn grab(
         return;
     };
 
-    if !action_state.just_pressed(Action::Grab) {
+    if !action_state.just_pressed(&Action::Grab) {
         return;
     }
 
@@ -606,7 +595,7 @@ fn build_tower(
         return;
     };
 
-    if !action_state.just_pressed(Action::Grab) {
+    if !action_state.just_pressed(&Action::Grab) {
         return;
     }
 
@@ -653,7 +642,7 @@ fn feed_tower(
         return;
     };
 
-    if !action_state.just_pressed(Action::Grab) {
+    if !action_state.just_pressed(&Action::Grab) {
         return;
     }
 

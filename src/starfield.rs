@@ -42,7 +42,6 @@ fn setup(
             },
             ..default()
         },
-        UiCameraConfig { show_ui: false },
         layer,
         Persist,
     ));
