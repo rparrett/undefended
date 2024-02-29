@@ -379,12 +379,13 @@ fn item_probe(
     for evt in collision_events.read() {
         match evt {
             CollisionEvent::Started(e1, e2, _) => {
-                if let Some((probe_entity, item_entity)) =
-                    (&probe_query, &item_query).get_both(e1, e2)
-                {
-                    if let Ok(mut selected_item) = selected_item_query.get_mut(probe_entity.get()) {
-                        selected_item.0 = Some(item_entity);
-                    }
+                let queries = (&probe_query, &item_query);
+                let Some((probe_entity, item_entity)) = queries.get_both(e1, e2) else {
+                    continue;
+                };
+
+                if let Ok(mut selected_item) = selected_item_query.get_mut(probe_entity.get()) {
+                    selected_item.0 = Some(item_entity);
                 }
             }
             CollisionEvent::Stopped(e1, e2, _) => {
@@ -406,10 +407,13 @@ fn track_last_tile(
 ) {
     for evt in collision_events.read() {
         if let CollisionEvent::Started(e1, e2, _) = evt {
-            if let Some((probe_entity, tile_pos)) = (&probe_query, &floor_query).get_both(e1, e2) {
-                if let Ok(mut last_tile) = last_tile_query.get_mut(probe_entity.get()) {
-                    last_tile.0 = tile_pos.0;
-                }
+            let queries = (&probe_query, &floor_query);
+            let Some((probe_entity, tile_pos)) = queries.get_both(e1, e2) else {
+                continue;
+            };
+
+            if let Ok(mut last_tile) = last_tile_query.get_mut(probe_entity.get()) {
+                last_tile.0 = tile_pos.0;
             }
         }
     }
@@ -425,20 +429,22 @@ fn lava(
 ) {
     for evt in collision_events.read() {
         if let CollisionEvent::Started(e1, e2, _) = evt {
-            if let (Some(_), Some((last_tile, children, mut transform))) =
-                (&lava_query, &player_query).get_both_mut(e1, e2)
-            {
-                let pos = if tower_query.iter().any(|pos| pos.0 == last_tile.0) {
-                    START_TILE
-                } else {
-                    last_tile.0
-                };
+            let queries = (&lava_query, &player_query);
+            let (_, Some((last_tile, children, mut transform))) = queries.get_both_mut(e1, e2)
+            else {
+                continue;
+            };
 
-                transform.translation = map_to_world(pos);
+            let pos = if tower_query.iter().any(|pos| pos.0 == last_tile.0) {
+                START_TILE
+            } else {
+                last_tile.0
+            };
 
-                for item_entity in item_query.iter_many(children) {
-                    commands.entity(item_entity).despawn_recursive();
-                }
+            transform.translation = map_to_world(pos);
+
+            for item_entity in item_query.iter_many(children) {
+                commands.entity(item_entity).despawn_recursive();
             }
         }
     }

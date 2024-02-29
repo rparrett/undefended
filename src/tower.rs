@@ -122,23 +122,23 @@ fn ranging(
     for evt in collision_events.read() {
         match evt {
             CollisionEvent::Started(e1, e2, _) => {
-                let range_sensor = range_sensor_query.iter_many([e1, e2]).next();
-                let enemy = enemy_query.iter_many([e1, e2]).next();
+                let queries = (&range_sensor_query, &enemy_query);
+                let (Some(range_sensor_parent), Some(enemy_entity)) = queries.get_both() else {
+                    continue;
+                };
 
-                if let (Some(range_sensor_entity), Some(enemy_entity)) = (range_sensor, enemy) {
-                    if let Ok(mut in_range) = tower_query.get_mut(range_sensor_entity.get()) {
-                        in_range.0.insert(enemy_entity);
-                    }
+                if let Ok(mut in_range) = tower_query.get_mut(range_sensor_parent.get()) {
+                    in_range.0.insert(enemy_entity);
                 }
             }
             CollisionEvent::Stopped(e1, e2, _) => {
-                let range_sensor = range_sensor_query.iter_many([e1, e2]).next();
-                let enemy = enemy_query.iter_many([e1, e2]).next();
+                let queries = (&range_sensor_query, &enemy_query);
+                let (Some(range_sensor_parent), Some(enemy_entity)) = queries.get_both() else {
+                    continue;
+                };
 
-                if let (Some(range_sensor_entity), Some(enemy_entity)) = (range_sensor, enemy) {
-                    if let Ok(mut in_range) = tower_query.get_mut(range_sensor_entity.get()) {
-                        in_range.0.remove(&enemy_entity);
-                    }
+                if let Ok(mut in_range) = tower_query.get_mut(range_sensor_parent.get()) {
+                    in_range.0.remove(&enemy_entity);
                 }
             }
         }
