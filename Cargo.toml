@@ -12,21 +12,19 @@ debugdump = ["bevy_mod_debugdump"]
 [dependencies]
 bevy = "0.13"
 bevy_rapier3d = { version = "0.25", features = ["debug-render-3d"] }
-# BLOCKED
-bevy_dolly = { version = "0.0.2" }
+# Waiting for https://github.com/BlackPhlox/bevy_dolly/pull/51
+bevy_dolly = { git = "https://github.com/rparrett/bevy_dolly/", branch = "bevy-0.13" }
 bevy_asset_loader = "0.20.0"
 bevy-inspector-egui = { version = "0.23", optional = true }
 leafwing-input-manager = "0.13"
-# BLOCKED
+# BLOCKED due to bevy_mod_picking sub-dep
 bevy-ui-navigation = "0.33.0"
 bevy_mod_debugdump = { version = "0.10", optional = true }
 bevy_pipelines_ready = "0.3.0"
 bevy_two_entities = { path = "../bevy_two_entities" }
-
-# BLOCKED
-bevy-tnua = "0.13.0"
-bevy-tnua-physics-integration-layer = "0.1.0"
-bevy-tnua-rapier3d = "0.1.0"
+bevy-tnua = "0.15.0"
+bevy-tnua-physics-integration-layer = "0.2.0"
+bevy-tnua-rapier3d = "0.3.0"
 
 rand = "0.8.5"
 serde = "*"
@@ -34,3 +32,7 @@ ron = "0.8.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys = { version = "*", features = ["console", "Window", "Storage"] }
+
+[patch."https://github.com/rparrett/bevy_dolly/"]
+# Waiting for https://github.com/BlackPhlox/bevy_dolly/pull/51
+dolly = { git = "https://github.com/janhohenheim/dolly", branch = "bevy-0.13" }
