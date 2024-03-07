@@ -357,8 +357,7 @@ fn sfx_volume(mut commands: Commands, sfx_setting: Res<SfxSetting>, game_audio: 
 
     commands.spawn(AudioBundle {
         source: game_audio.build.clone(),
-        settings: PlaybackSettings::ONCE
-            .with_volume(Volume::new_absolute(**sfx_setting as f32 / 100.)),
+        settings: PlaybackSettings::DESPAWN.with_volume(Volume::new(**sfx_setting as f32 / 100.)),
     });
 }
 

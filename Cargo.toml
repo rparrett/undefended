@@ -17,8 +17,8 @@ bevy_dolly = { git = "https://github.com/rparrett/bevy_dolly/", branch = "bevy-0
 bevy_asset_loader = "0.20.0"
 bevy-inspector-egui = { version = "0.23", optional = true }
 leafwing-input-manager = "0.13"
-# BLOCKED due to bevy_mod_picking sub-dep
-bevy-ui-navigation = "0.33.0"
+# BLOCKED due to cuicui sub-dep
+bevy-ui-navigation = { git = "https://github.com/rparrett/ui-navigation/", branch = "bevy-0.13" }
 bevy_mod_debugdump = { version = "0.10", optional = true }
 bevy_pipelines_ready = "0.3.0"
 bevy_two_entities = { path = "../bevy_two_entities" }

@@ -2,6 +2,7 @@ use bevy::audio::Volume;
 use bevy::math::Vec3Swizzles;
 use bevy::{prelude::*, utils::HashSet};
 use bevy_rapier3d::prelude::*;
+use bevy_two_entities::tuple::TupleQueryExt;
 
 use crate::enemy::{HitPoints, PathIndex};
 use crate::loading::Sounds;
@@ -123,7 +124,7 @@ fn ranging(
         match evt {
             CollisionEvent::Started(e1, e2, _) => {
                 let queries = (&range_sensor_query, &enemy_query);
-                let (Some(range_sensor_parent), Some(enemy_entity)) = queries.get_both() else {
+                let Some((range_sensor_parent, enemy_entity)) = queries.get_both(*e1, *e2) else {
                     continue;
                 };
 
@@ -133,7 +134,7 @@ fn ranging(
             }
             CollisionEvent::Stopped(e1, e2, _) => {
                 let queries = (&range_sensor_query, &enemy_query);
-                let (Some(range_sensor_parent), Some(enemy_entity)) = queries.get_both() else {
+                let Some((range_sensor_parent, enemy_entity)) = queries.get_both(*e1, *e2) else {
                     continue;
                 };
 
@@ -237,8 +238,7 @@ fn build_sound(
 
     commands.spawn(AudioBundle {
         source: game_audio.build.clone(),
-        settings: PlaybackSettings::ONCE
-            .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+        settings: PlaybackSettings::DESPAWN.with_volume(Volume::new(**audio_setting as f32 / 100.)),
     });
 }
 
@@ -285,7 +285,7 @@ fn shooting(
             Name::new("Laser"),
             PbrBundle {
                 transform: laser_transform,
-                mesh: meshes.add(shape::Box::new(0.1, 0.1, 0.1).into()),
+                mesh: meshes.add(shape::Box::new(0.1, 0.1, 0.1)),
                 material: material.0.clone(),
                 ..default()
             },
@@ -332,8 +332,8 @@ fn laser_sound(
         if ammo.current == 0 {
             commands.spawn(AudioBundle {
                 source: game_audio.powerdown.clone(),
-                settings: PlaybackSettings::ONCE
-                    .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+                settings: PlaybackSettings::DESPAWN
+                    .with_volume(Volume::new(**audio_setting as f32 / 100.)),
             });
         }
     }

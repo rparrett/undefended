@@ -1,12 +1,11 @@
 #import bevy_core_pipeline::fullscreen_vertex_shader::FullscreenVertexOutput
-#import bevy_render::instance_index::get_instance_index
 
 struct StarfieldMaterial {
     pos: vec2<f32>,
     _wasm_padding: vec2<f32>,
 };
 
-@group(1) @binding(0)
+@group(2) @binding(0)
 var<uniform> material: StarfieldMaterial;
 
 
@@ -72,11 +71,6 @@ fn fragment(
 
         finalColor = finalColor + (starfield(starfield_coords, threshold) * layer_brightness);
     }
-
-    // Hack: this ensures the push constant is always used, which works around this issue:
-    // https://github.com/bevyengine/bevy/issues/10509
-    // This can be probably be removed after Bevy 0.13 is released.
-    finalColor.x += min(f32(get_instance_index(0u)), 0.0);
 
     let fragColor = vec4<f32>(finalColor, 1.0);
 

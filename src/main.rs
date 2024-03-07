@@ -12,7 +12,7 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
 use bevy_tnua::prelude::*;
 use bevy_tnua_rapier3d::{TnuaRapier3dIOBundle, TnuaRapier3dPlugin, TnuaRapier3dSensorShape};
-use bevy_two_entities::tuple::TupleQueryExt;
+use bevy_two_entities::tuple::{TupleQueryExt, TupleQueryMutExt};
 use bevy_ui_navigation::{systems::InputMapping, DefaultNavigationPlugins};
 use game_over::GameOverPlugin;
 use leafwing_input_manager::prelude::*;
@@ -125,7 +125,8 @@ fn main() {
         ..default()
     }));
 
-    app.add_state::<GameState>().add_event::<SpawnPlayerEvent>();
+    app.init_state::<GameState>()
+        .add_event::<SpawnPlayerEvent>();
 
     // TODO we may need apply_deferred somewhere in here
     app.configure_sets(
@@ -380,7 +381,7 @@ fn item_probe(
         match evt {
             CollisionEvent::Started(e1, e2, _) => {
                 let queries = (&probe_query, &item_query);
-                let Some((probe_entity, item_entity)) = queries.get_both(e1, e2) else {
+                let Some((probe_entity, item_entity)) = queries.get_both(*e1, *e2) else {
                     continue;
                 };
 
@@ -389,7 +390,7 @@ fn item_probe(
                 }
             }
             CollisionEvent::Stopped(e1, e2, _) => {
-                if (&probe_query, &item_query).both(e1, e2) {
+                if (&probe_query, &item_query).both(*e1, *e2) {
                     for mut selected_item in selected_item_query.iter_mut() {
                         selected_item.0 = None;
                     }
@@ -408,7 +409,7 @@ fn track_last_tile(
     for evt in collision_events.read() {
         if let CollisionEvent::Started(e1, e2, _) = evt {
             let queries = (&probe_query, &floor_query);
-            let Some((probe_entity, tile_pos)) = queries.get_both(e1, e2) else {
+            let Some((probe_entity, tile_pos)) = queries.get_both(*e1, *e2) else {
                 continue;
             };
 
@@ -429,8 +430,8 @@ fn lava(
 ) {
     for evt in collision_events.read() {
         if let CollisionEvent::Started(e1, e2, _) = evt {
-            let queries = (&lava_query, &player_query);
-            let (_, Some((last_tile, children, mut transform))) = queries.get_both_mut(e1, e2)
+            let mut queries = (&lava_query, &mut player_query);
+            let Some((_, (last_tile, children, mut transform))) = queries.get_both_mut(*e1, *e2)
             else {
                 continue;
             };
@@ -476,28 +477,28 @@ fn spawn_player(
                 InputManagerBundle::<Action> {
                     action_state: ActionState::default(),
                     input_map: InputMap::default()
-                        .insert(KeyCode::Space, Action::Jump)
-                        .insert(GamepadButtonType::South, Action::Jump)
-                        .insert(KeyCode::R, Action::Grab)
-                        .insert(GamepadButtonType::West, Action::Grab)
-                        .insert(DualAxis::left_stick(), Action::Run)
+                        .insert(Action::Jump, KeyCode::Space)
+                        .insert(Action::Jump, GamepadButtonType::South)
+                        .insert(Action::Grab, KeyCode::KeyR)
+                        .insert(Action::Grab, GamepadButtonType::West)
+                        .insert(Action::Run, DualAxis::left_stick())
                         .insert(
-                            VirtualDPad {
-                                up: KeyCode::W.into(),
-                                down: KeyCode::S.into(),
-                                left: KeyCode::A.into(),
-                                right: KeyCode::D.into(),
-                            },
                             Action::Run,
+                            VirtualDPad {
+                                up: KeyCode::KeyW.into(),
+                                down: KeyCode::KeyS.into(),
+                                left: KeyCode::KeyA.into(),
+                                right: KeyCode::KeyD.into(),
+                            },
                         )
                         .insert(
-                            VirtualDPad {
-                                up: KeyCode::Up.into(),
-                                down: KeyCode::Down.into(),
-                                left: KeyCode::Left.into(),
-                                right: KeyCode::Right.into(),
-                            },
                             Action::Run,
+                            VirtualDPad {
+                                up: KeyCode::ArrowUp.into(),
+                                down: KeyCode::ArrowDown.into(),
+                                left: KeyCode::ArrowLeft.into(),
+                                right: KeyCode::ArrowRight.into(),
+                            },
                         )
                         .build(),
                 },
@@ -574,8 +575,8 @@ fn grab(
     if grabbed_item_query.iter_many(children).next().is_some() {
         commands.spawn(AudioBundle {
             source: game_audio.bad.clone(),
-            settings: PlaybackSettings::ONCE
-                .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+            settings: PlaybackSettings::DESPAWN
+                .with_volume(Volume::new(**audio_setting as f32 / 100.)),
         });
 
         return;
@@ -616,8 +617,8 @@ fn build_tower(
     let Some(selected_tile) = selected_tile.0 else {
         commands.spawn(AudioBundle {
             source: game_audio.bad.clone(),
-            settings: PlaybackSettings::ONCE
-                .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+            settings: PlaybackSettings::DESPAWN
+                .with_volume(Volume::new(**audio_setting as f32 / 100.)),
         });
         return;
     };
@@ -626,14 +627,14 @@ fn build_tower(
     if invalid {
         commands.spawn(AudioBundle {
             source: game_audio.bad.clone(),
-            settings: PlaybackSettings::ONCE
-                .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+            settings: PlaybackSettings::DESPAWN
+                .with_volume(Volume::new(**audio_setting as f32 / 100.)),
         });
         return;
     }
 
     commands.entity(entity).despawn_recursive();
-    events.send(SpawnTowerEvent(selected_tile))
+    events.send(SpawnTowerEvent(selected_tile));
 }
 
 fn feed_tower(
@@ -663,8 +664,8 @@ fn feed_tower(
     let Some(selected_tile) = selected_tile.0 else {
         commands.spawn(AudioBundle {
             source: game_audio.bad.clone(),
-            settings: PlaybackSettings::ONCE
-                .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+            settings: PlaybackSettings::DESPAWN
+                .with_volume(Volume::new(**audio_setting as f32 / 100.)),
         });
 
         return;
@@ -676,8 +677,8 @@ fn feed_tower(
     else {
         commands.spawn(AudioBundle {
             source: game_audio.bad.clone(),
-            settings: PlaybackSettings::ONCE
-                .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+            settings: PlaybackSettings::DESPAWN
+                .with_volume(Volume::new(**audio_setting as f32 / 100.)),
         });
         return;
     };
@@ -686,8 +687,7 @@ fn feed_tower(
 
     commands.spawn(AudioBundle {
         source: game_audio.feed.clone(),
-        settings: PlaybackSettings::ONCE
-            .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+        settings: PlaybackSettings::DESPAWN.with_volume(Volume::new(**audio_setting as f32 / 100.)),
     });
 
     commands.entity(entity).despawn_recursive();
@@ -709,7 +709,7 @@ fn start_music(
         AudioBundle {
             source: audio_assets.music.clone(),
             settings: PlaybackSettings::LOOP
-                .with_volume(Volume::new_absolute(**music_setting as f32 / 100.)),
+                .with_volume(Volume::new(**music_setting as f32 / 100.)),
         },
         MusicController,
         Persist,
