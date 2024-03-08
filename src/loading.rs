@@ -72,12 +72,13 @@ impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(PipelinesReadyPlugin)
             .add_loading_state(
-                LoadingState::new(GameState::Loading).continue_to_state(GameState::Pipelines),
+                LoadingState::new(GameState::Loading)
+                    .load_collection::<Models>()
+                    .load_collection::<Fonts>()
+                    .load_collection::<Images>()
+                    .load_collection::<Sounds>()
+                    .continue_to_state(GameState::Pipelines),
             )
-            .add_collection_to_loading_state::<_, Models>(GameState::Loading)
-            .add_collection_to_loading_state::<_, Fonts>(GameState::Loading)
-            .add_collection_to_loading_state::<_, Images>(GameState::Loading)
-            .add_collection_to_loading_state::<_, Sounds>(GameState::Loading)
             .add_systems(
                 Update,
                 pipelines_done.run_if(in_state(GameState::Pipelines)),
@@ -118,7 +119,7 @@ fn setup_pipelines(
     commands.spawn((
         PipelinesMarker,
         PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 0.25 })),
+            mesh: meshes.add(Mesh::from(Cuboid::new(0.25, 0.25, 0.25))),
             material: path_mat.clone(),
             ..default()
         },

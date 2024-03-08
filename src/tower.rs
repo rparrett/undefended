@@ -285,7 +285,7 @@ fn shooting(
             Name::new("Laser"),
             PbrBundle {
                 transform: laser_transform,
-                mesh: meshes.add(shape::Box::new(0.1, 0.1, 0.1)),
+                mesh: meshes.add(Cuboid::new(0.1, 0.1, 0.1)),
                 material: material.0.clone(),
                 ..default()
             },

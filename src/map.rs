@@ -269,7 +269,7 @@ fn spawn_map(
             commands.spawn((
                 Name::new("PathDot"),
                 PbrBundle {
-                    mesh: meshes.add(Mesh::from(shape::Cube { size: 0.25 })),
+                    mesh: meshes.add(Cuboid::new(0.25, 0.25, 0.25)),
                     material: path_mat.clone(),
                     transform: Transform::from_translation(map_to_world(path_tile)),
                     ..default()
