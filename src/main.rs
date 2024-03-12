@@ -21,8 +21,10 @@ use enemy::{Enemy, EnemyPlugin};
 use loading::{LoadingPlugin, Models, Sounds};
 use main_menu::MainMenuPlugin;
 use map::{
-    map_to_world, Floor, Item, ItemSpawner, Lava, MapPlugin, MovingFloor, TilePos, START_TILE,
+    map_to_world, Floor, Item, ItemSpawner, Lava, MapPlugin, MovingFloor, PlacedTower, TilePos,
+    START_TILE,
 };
+use outline::{InnerMeshOutline, OutlinePlugin};
 use save::SavePlugin;
 use settings::{MusicSetting, SfxSetting};
 use starfield::StarfieldPlugin;
@@ -35,6 +37,7 @@ mod game_over;
 mod loading;
 mod main_menu;
 mod map;
+mod outline;
 mod save;
 mod settings;
 mod starfield;
@@ -67,8 +70,8 @@ struct ItemProbe;
 #[derive(Component)]
 struct LastTile(UVec2);
 
-#[derive(Component, Default, Reflect)]
-struct SelectedTile(Option<UVec2>);
+#[derive(Component, Reflect)]
+struct SelectedTile(Option<Entity>);
 
 #[derive(Component, Default, Reflect)]
 struct SelectedItem(Option<Entity>);
@@ -198,12 +201,14 @@ fn main() {
         .add_plugins(SavePlugin)
         .add_plugins(UiPlugin)
         .add_plugins(WavePlugin)
-        .add_plugins(GameOverPlugin);
+        .add_plugins(GameOverPlugin)
+        .add_plugins(OutlinePlugin);
 
     #[cfg(feature = "inspector")]
     {
         app.add_plugins(WorldInspectorPlugin::new());
         app.add_plugins(RapierDebugRenderPlugin::default());
+        app.register_type::<SelectedTilePos>();
         app.register_type::<SelectedTile>();
         app.register_type::<SelectedItem>();
     }
@@ -340,26 +345,27 @@ fn update_camera(player_query: Query<&Transform, With<Player>>, mut rig_query: Q
 }
 
 fn cursor(
+    mut commands: Commands,
     mut collision_events: EventReader<CollisionEvent>,
     cursor_query: Query<&Parent, With<Cursor>>,
-    floor_query: Query<(Entity, &TilePos), With<Floor>>,
+    floor_query: Query<Entity, With<Floor>>,
     mut selected_tile_query: Query<&mut SelectedTile>,
 ) {
     for evt in collision_events.read() {
         match evt {
             CollisionEvent::Started(e1, e2, _) => {
                 let queries = (&cursor_query, &floor_query);
-                let Some((cursor, (_, tile_pos))) = queries.get_both(*e1, *e2) else {
+                let Some((cursor, floor_entity)) = queries.get_both(*e1, *e2) else {
                     continue;
                 };
 
                 if let Ok(mut selected_tile) = selected_tile_query.get_mut(cursor.get()) {
-                    selected_tile.0 = Some(tile_pos.0);
+                    selected_tile.0 = Some(floor_entity);
                 }
             }
             CollisionEvent::Stopped(e1, e2, _) => {
                 let queries = (&cursor_query, &floor_query);
-                let Some((cursor, _)) = queries.get_both(*e1, *e2) else {
+                let Some((cursor, floor_entity)) = queries.get_both(*e1, *e2) else {
                     continue;
                 };
 
@@ -372,6 +378,7 @@ fn cursor(
 }
 
 fn item_probe(
+    mut commands: Commands,
     mut collision_events: EventReader<CollisionEvent>,
     probe_query: Query<&Parent, With<ItemProbe>>,
     item_query: Query<Entity, With<Item>>,
@@ -388,13 +395,23 @@ fn item_probe(
                 if let Ok(mut selected_item) = selected_item_query.get_mut(probe_entity.get()) {
                     selected_item.0 = Some(item_entity);
                 }
+
+                commands.entity(item_entity).insert(InnerMeshOutline {
+                    width: 3.,
+                    color: Color::hsla(160., 0.9, 0.5, 1.0),
+                });
             }
             CollisionEvent::Stopped(e1, e2, _) => {
-                if (&probe_query, &item_query).both(*e1, *e2) {
-                    for mut selected_item in selected_item_query.iter_mut() {
-                        selected_item.0 = None;
-                    }
+                let queries = (&probe_query, &item_query);
+                let Some((_, item_entity)) = queries.get_both(*e1, *e2) else {
+                    continue;
+                };
+
+                for mut selected_item in selected_item_query.iter_mut() {
+                    selected_item.0 = None;
                 }
+
+                commands.entity(item_entity).remove::<InnerMeshOutline>();
             }
         }
     }
@@ -593,7 +610,7 @@ fn build_tower(
     mut commands: Commands,
     player_query: Query<(&Children, &ActionState<Action>, &SelectedTile), With<Player>>,
     grabbed_item_query: Query<(Entity, &Item)>,
-    invalid_pos_query: Query<&TilePos, Or<(With<MovingFloor>, With<Tower>, With<ItemSpawner>)>>,
+    invalid_tile_query: Query<(), Or<(With<MovingFloor>, With<PlacedTower>, With<ItemSpawner>)>>,
     game_audio: Res<Sounds>,
     audio_setting: Res<SfxSetting>,
     mut events: EventWriter<SpawnTowerEvent>,
@@ -623,7 +640,7 @@ fn build_tower(
         return;
     };
 
-    let invalid = invalid_pos_query.iter().any(|pos| pos.0 == selected_tile);
+    let invalid = invalid_tile_query.get(selected_tile).is_ok();
     if invalid {
         commands.spawn(AudioBundle {
             source: game_audio.bad.clone(),
@@ -634,6 +651,7 @@ fn build_tower(
     }
 
     commands.entity(entity).despawn_recursive();
+
     events.send(SpawnTowerEvent(selected_tile));
 }
 
@@ -641,7 +659,8 @@ fn feed_tower(
     mut commands: Commands,
     player_query: Query<(&Children, &ActionState<Action>, &SelectedTile), With<Player>>,
     grabbed_item_query: Query<(Entity, &Item)>,
-    mut tower_query: Query<(&TilePos, &mut Ammo), With<Tower>>,
+    placed_tower_query: Query<&PlacedTower>,
+    mut tower_query: Query<&mut Ammo, With<Tower>>,
     game_audio: Res<Sounds>,
     audio_setting: Res<SfxSetting>,
 ) {
@@ -671,10 +690,16 @@ fn feed_tower(
         return;
     };
 
-    let Some((_, mut ammo)) = tower_query
-        .iter_mut()
-        .find(|(pos, _)| pos.0 == selected_tile)
-    else {
+    let Ok(placed_tower) = placed_tower_query.get(selected_tile) else {
+        commands.spawn(AudioBundle {
+            source: game_audio.bad.clone(),
+            settings: PlaybackSettings::DESPAWN
+                .with_volume(Volume::new(**audio_setting as f32 / 100.)),
+        });
+        return;
+    };
+
+    let Ok(mut ammo) = tower_query.get_mut(placed_tower.0) else {
         commands.spawn(AudioBundle {
             source: game_audio.bad.clone(),
             settings: PlaybackSettings::DESPAWN

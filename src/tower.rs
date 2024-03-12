@@ -6,7 +6,7 @@ use bevy_two_entities::tuple::TupleQueryExt;
 
 use crate::enemy::{HitPoints, PathIndex};
 use crate::loading::Sounds;
-use crate::map::{TilePos, PATH};
+use crate::map::{PlacedTower, TilePos, PATH};
 use crate::settings::SfxSetting;
 use crate::{enemy::Enemy, loading::Models, map::map_to_world, GameState};
 
@@ -23,7 +23,7 @@ pub struct Target(pub Option<Entity>);
 pub struct InRange(pub HashSet<Entity>);
 
 #[derive(Event)]
-pub struct SpawnTowerEvent(pub UVec2);
+pub struct SpawnTowerEvent(pub Entity);
 
 #[derive(Component)]
 pub struct RangeSensor;
@@ -183,21 +183,32 @@ fn targeting(
     }
 }
 
-fn spawn(mut commands: Commands, mut events: EventReader<SpawnTowerEvent>, models: Res<Models>) {
+fn spawn(
+    mut commands: Commands,
+    mut events: EventReader<SpawnTowerEvent>,
+    tile_pos_query: Query<&TilePos>,
+    models: Res<Models>,
+) {
     for event in events.read() {
-        commands
+        let Ok(tile_pos) = tile_pos_query.get(event.0) else {
+            continue;
+        };
+
+        let entity = commands
             .spawn((
                 Tower,
                 Name::new("Tower"),
                 SceneBundle {
                     scene: models.tower_base.clone(),
-                    transform: Transform::from_translation(map_to_world(event.0) + Vec3::Y * 0.75),
+                    transform: Transform::from_translation(
+                        map_to_world(tile_pos.0) + Vec3::Y * 0.75,
+                    ),
                     ..default()
                 },
                 Target(None),
                 InRange::default(),
                 Cooldown(Timer::from_seconds(2.5, TimerMode::Repeating)),
-                TilePos(event.0),
+                TilePos(tile_pos.0),
                 Ammo::new(20),
                 RigidBody::Fixed,
                 Collider::cuboid(1.0, 3.0, 1.0),
@@ -222,7 +233,10 @@ fn spawn(mut commands: Commands, mut events: EventReader<SpawnTowerEvent>, model
                     ActiveCollisionTypes::STATIC_STATIC,
                     ActiveEvents::COLLISION_EVENTS,
                 ));
-            });
+            })
+            .id();
+
+        commands.entity(event.0).insert(PlacedTower(entity));
     }
 }
 

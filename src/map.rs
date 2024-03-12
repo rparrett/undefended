@@ -91,6 +91,9 @@ impl Display for Item {
 }
 
 #[derive(Component)]
+pub struct PlacedTower(pub Entity);
+
+#[derive(Component)]
 pub struct MovingFloor {
     waypoints: Vec<UVec2>,
     index: usize,
