@@ -1,5 +1,6 @@
 use bevy::{pbr::CascadeShadowConfigBuilder, prelude::*};
 use bevy_asset_loader::prelude::*;
+use bevy_mod_outline::{OutlineBundle, OutlineVolume};
 use bevy_pipelines_ready::{PipelinesReady, PipelinesReadyPlugin};
 
 use crate::GameState;
@@ -64,23 +65,27 @@ pub struct Images {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-const EXPECTED_PIPELINES: usize = 15;
+const EXPECTED_PIPELINES: usize = 22;
 #[cfg(target_arch = "wasm32")]
-const EXPECTED_PIPELINES: usize = 13;
+const EXPECTED_PIPELINES: usize = 20;
 
 impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(PipelinesReadyPlugin)
             .add_loading_state(
-                LoadingState::new(GameState::Loading).continue_to_state(GameState::Pipelines),
+                LoadingState::new(GameState::Loading)
+                    .load_collection::<Models>()
+                    .load_collection::<Fonts>()
+                    .load_collection::<Images>()
+                    .load_collection::<Sounds>()
+                    .continue_to_state(GameState::Pipelines),
             )
-            .add_collection_to_loading_state::<_, Models>(GameState::Loading)
-            .add_collection_to_loading_state::<_, Fonts>(GameState::Loading)
-            .add_collection_to_loading_state::<_, Images>(GameState::Loading)
-            .add_collection_to_loading_state::<_, Sounds>(GameState::Loading)
             .add_systems(
                 Update,
-                pipelines_done.run_if(in_state(GameState::Pipelines)),
+                (
+                    pipelines_print.run_if(resource_changed::<PipelinesReady>),
+                    pipelines_done.run_if(in_state(GameState::Pipelines)),
+                ),
             )
             .add_systems(OnExit(GameState::Pipelines), cleanup)
             .add_systems(OnEnter(GameState::Pipelines), setup_pipelines);
@@ -118,8 +123,17 @@ fn setup_pipelines(
     commands.spawn((
         PipelinesMarker,
         PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 0.25 })),
+            mesh: meshes.add(Mesh::from(Cuboid::new(0.25, 0.25, 0.25))),
             material: path_mat.clone(),
+            ..default()
+        },
+        // Make sure this gets outlined so that outline pipelines are created
+        OutlineBundle {
+            outline: OutlineVolume {
+                width: 1.,
+                colour: Color::WHITE,
+                visible: true,
+            },
             ..default()
         },
     ));
@@ -144,9 +158,11 @@ fn setup_pipelines(
     ));
 }
 
-fn pipelines_done(ready: Res<PipelinesReady>, mut next_state: ResMut<NextState<GameState>>) {
+fn pipelines_print(ready: Res<PipelinesReady>) {
     info!("Pipelines Ready: {}/{}", ready.get(), EXPECTED_PIPELINES);
+}
 
+fn pipelines_done(ready: Res<PipelinesReady>, mut next_state: ResMut<NextState<GameState>>) {
     if ready.get() >= EXPECTED_PIPELINES {
         next_state.set(GameState::MainMenu);
     }

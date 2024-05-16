@@ -94,8 +94,8 @@ fn movement(
         } else {
             commands.spawn(AudioBundle {
                 source: game_audio.damage.clone(),
-                settings: PlaybackSettings::ONCE
-                    .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+                settings: PlaybackSettings::DESPAWN
+                    .with_volume(Volume::new(**audio_setting as f32 / 100.)),
             });
 
             lives.0 = lives.0.saturating_sub(1);

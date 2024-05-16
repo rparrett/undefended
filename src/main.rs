@@ -4,16 +4,17 @@
 use std::{fs::File, io::Write};
 
 use bevy::{
-    audio::Volume, core_pipeline::clear_color::ClearColorConfig, pbr::CascadeShadowConfigBuilder,
-    prelude::*, transform::TransformSystem,
+    asset::AssetMetaCheck, audio::Volume, pbr::CascadeShadowConfigBuilder, prelude::*,
+    transform::TransformSystem,
 };
+use bevy_alt_ui_navigation_lite::{systems::InputMapping, DefaultNavigationPlugins};
 use bevy_dolly::prelude::*;
 #[cfg(feature = "inspector")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
 use bevy_tnua::prelude::*;
 use bevy_tnua_rapier3d::{TnuaRapier3dIOBundle, TnuaRapier3dPlugin, TnuaRapier3dSensorShape};
-use bevy_ui_navigation::{systems::InputMapping, DefaultNavigationPlugins};
+use bevy_two_entities::tuple::{TupleQueryExt, TupleQueryMutExt};
 use game_over::GameOverPlugin;
 use leafwing_input_manager::prelude::*;
 
@@ -21,8 +22,10 @@ use enemy::{Enemy, EnemyPlugin};
 use loading::{LoadingPlugin, Models, Sounds};
 use main_menu::MainMenuPlugin;
 use map::{
-    map_to_world, Floor, Item, ItemSpawner, Lava, MapPlugin, MovingFloor, TilePos, START_TILE,
+    map_to_world, Floor, Item, ItemSpawner, Lava, MapPlugin, MovingFloor, PlacedTower, TilePos,
+    START_TILE,
 };
+use outline::{InnerMeshOutline, OutlinePlugin};
 use save::SavePlugin;
 use settings::{MusicSetting, SfxSetting};
 use starfield::StarfieldPlugin;
@@ -35,6 +38,7 @@ mod game_over;
 mod loading;
 mod main_menu;
 mod map;
+mod outline;
 mod save;
 mod settings;
 mod starfield;
@@ -67,8 +71,8 @@ struct ItemProbe;
 #[derive(Component)]
 struct LastTile(UVec2);
 
-#[derive(Component, Default, Reflect)]
-struct SelectedTile(Option<UVec2>);
+#[derive(Component, Reflect)]
+struct SelectedTile(Option<Entity>);
 
 #[derive(Component, Default, Reflect)]
 struct SelectedItem(Option<Entity>);
@@ -115,6 +119,11 @@ const CAMERA_OFFSET: Vec3 = Vec3::new(0., 10., 6.);
 fn main() {
     let mut app = App::new();
 
+    // Workaround for Bevy attempting to load .meta files in wasm builds. On itch,
+    // the CDN serves HTTP 403 errors instead of 404 when files don't exist, which
+    // causes Bevy to break.
+    app.insert_resource(AssetMetaCheck::Never);
+
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
             title: "UNDEFENDED!".to_string(),
@@ -125,7 +134,8 @@ fn main() {
         ..default()
     }));
 
-    app.add_state::<GameState>().add_event::<SpawnPlayerEvent>();
+    app.init_state::<GameState>()
+        .add_event::<SpawnPlayerEvent>();
 
     // TODO we may need apply_deferred somewhere in here
     app.configure_sets(
@@ -197,12 +207,14 @@ fn main() {
         .add_plugins(SavePlugin)
         .add_plugins(UiPlugin)
         .add_plugins(WavePlugin)
-        .add_plugins(GameOverPlugin);
+        .add_plugins(GameOverPlugin)
+        .add_plugins(OutlinePlugin);
 
     #[cfg(feature = "inspector")]
     {
         app.add_plugins(WorldInspectorPlugin::new());
         app.add_plugins(RapierDebugRenderPlugin::default());
+        app.register_type::<SelectedTilePos>();
         app.register_type::<SelectedTile>();
         app.register_type::<SelectedItem>();
     }
@@ -263,7 +275,7 @@ fn setup_camera(mut commands: Commands) {
             .build(),
         Camera3dBundle {
             transform: Transform::from_translation(CAMERA_OFFSET).looking_at(Vec3::ZERO, Vec3::Y),
-            camera_3d: Camera3d {
+            camera: Camera {
                 clear_color: ClearColorConfig::None,
                 ..default()
             },
@@ -284,8 +296,8 @@ fn apply_controls(
     let mut direction = Vec3::ZERO;
     let mut turn_in_place = false;
 
-    if action_state.pressed(Action::Run) {
-        let axis_pair = action_state.clamped_axis_pair(Action::Run).unwrap();
+    if action_state.pressed(&Action::Run) {
+        let axis_pair = action_state.clamped_axis_pair(&Action::Run).unwrap();
 
         let vec = Vec3::new(axis_pair.x(), 0., -axis_pair.y());
         turn_in_place = vec.x.abs() < 0.3 && vec.z.abs() < 0.3;
@@ -296,7 +308,7 @@ fn apply_controls(
     let normalized = direction.normalize_or_zero();
     let with_speed = normalized * 4.3;
 
-    let jump = action_state.pressed(Action::Jump);
+    let jump = action_state.pressed(&Action::Jump);
 
     for mut controls in query.iter_mut() {
         controls.basis(TnuaBuiltinWalk {
@@ -341,31 +353,29 @@ fn update_camera(player_query: Query<&Transform, With<Player>>, mut rig_query: Q
 fn cursor(
     mut collision_events: EventReader<CollisionEvent>,
     cursor_query: Query<&Parent, With<Cursor>>,
-    floor_query: Query<(Entity, &TilePos), With<Floor>>,
+    floor_query: Query<Entity, With<Floor>>,
     mut selected_tile_query: Query<&mut SelectedTile>,
 ) {
     for evt in collision_events.read() {
         match evt {
             CollisionEvent::Started(e1, e2, _) => {
-                let cursor = cursor_query.iter_many([e1, e2]).next();
-                let floor = floor_query.iter_many([e1, e2]).next();
+                let queries = (&cursor_query, &floor_query);
+                let Some((cursor, floor_entity)) = queries.get_both(*e1, *e2) else {
+                    continue;
+                };
 
-                if let (Some(cursor_entity), Some((_, tile_pos))) = (cursor, floor) {
-                    if let Ok(mut selected_tile) = selected_tile_query.get_mut(cursor_entity.get())
-                    {
-                        selected_tile.0 = Some(tile_pos.0);
-                    }
+                if let Ok(mut selected_tile) = selected_tile_query.get_mut(cursor.get()) {
+                    selected_tile.0 = Some(floor_entity);
                 }
             }
             CollisionEvent::Stopped(e1, e2, _) => {
-                let cursor = cursor_query.iter_many([e1, e2]).next();
-                let floor = floor_query.iter_many([e1, e2]).next();
+                let queries = (&cursor_query, &floor_query);
+                let Some((cursor, _floor_entity)) = queries.get_both(*e1, *e2) else {
+                    continue;
+                };
 
-                if let (Some(cursor_entity), Some(_)) = (cursor, floor) {
-                    if let Ok(mut selected_tile) = selected_tile_query.get_mut(cursor_entity.get())
-                    {
-                        selected_tile.0 = None;
-                    }
+                if let Ok(mut selected_tile) = selected_tile_query.get_mut(cursor.get()) {
+                    selected_tile.0 = None;
                 }
             }
         }
@@ -373,6 +383,7 @@ fn cursor(
 }
 
 fn item_probe(
+    mut commands: Commands,
     mut collision_events: EventReader<CollisionEvent>,
     probe_query: Query<&Parent, With<ItemProbe>>,
     item_query: Query<Entity, With<Item>>,
@@ -381,24 +392,31 @@ fn item_probe(
     for evt in collision_events.read() {
         match evt {
             CollisionEvent::Started(e1, e2, _) => {
-                let probe = probe_query.iter_many([e1, e2]).next();
-                let item = item_query.iter_many([e1, e2]).next();
+                let queries = (&probe_query, &item_query);
+                let Some((probe_entity, item_entity)) = queries.get_both(*e1, *e2) else {
+                    continue;
+                };
 
-                if let (Some(probe_entity), Some(item_entity)) = (probe, item) {
-                    if let Ok(mut selected_item) = selected_item_query.get_mut(probe_entity.get()) {
-                        selected_item.0 = Some(item_entity);
-                    }
+                if let Ok(mut selected_item) = selected_item_query.get_mut(probe_entity.get()) {
+                    selected_item.0 = Some(item_entity);
                 }
+
+                commands.entity(item_entity).insert(InnerMeshOutline {
+                    width: 3.,
+                    color: Color::hsla(160., 0.9, 0.5, 1.0),
+                });
             }
             CollisionEvent::Stopped(e1, e2, _) => {
-                let is_probe = probe_query.iter_many([e1, e2]).next().is_some();
-                let is_item = item_query.iter_many([e1, e2]).next().is_some();
+                let queries = (&probe_query, &item_query);
+                let Some((_, item_entity)) = queries.get_both(*e1, *e2) else {
+                    continue;
+                };
 
-                if is_probe && is_item {
-                    for mut selected_item in selected_item_query.iter_mut() {
-                        selected_item.0 = None;
-                    }
+                for mut selected_item in selected_item_query.iter_mut() {
+                    selected_item.0 = None;
                 }
+
+                commands.entity(item_entity).remove::<InnerMeshOutline>();
             }
         }
     }
@@ -412,13 +430,13 @@ fn track_last_tile(
 ) {
     for evt in collision_events.read() {
         if let CollisionEvent::Started(e1, e2, _) = evt {
-            let probe = probe_query.iter_many([e1, e2]).next();
-            let floor = floor_query.iter_many([e1, e2]).next();
+            let queries = (&probe_query, &floor_query);
+            let Some((probe_entity, tile_pos)) = queries.get_both(*e1, *e2) else {
+                continue;
+            };
 
-            if let (Some(probe_entity), Some(tile_pos)) = (probe, floor) {
-                if let Ok(mut last_tile) = last_tile_query.get_mut(probe_entity.get()) {
-                    last_tile.0 = tile_pos.0;
-                }
+            if let Ok(mut last_tile) = last_tile_query.get_mut(probe_entity.get()) {
+                last_tile.0 = tile_pos.0;
             }
         }
     }
@@ -434,23 +452,22 @@ fn lava(
 ) {
     for evt in collision_events.read() {
         if let CollisionEvent::Started(e1, e2, _) = evt {
-            let lava = lava_query.iter_many([e1, e2]).next();
-            let mut player_iter = player_query.iter_many_mut([e1, e2]);
+            let mut queries = (&lava_query, &mut player_query);
+            let Some((_, (last_tile, children, mut transform))) = queries.get_both_mut(*e1, *e2)
+            else {
+                continue;
+            };
 
-            if let (Some(_), Some((last_tile, children, mut transform))) =
-                (lava, player_iter.fetch_next())
-            {
-                let pos = if tower_query.iter().any(|pos| pos.0 == last_tile.0) {
-                    START_TILE
-                } else {
-                    last_tile.0
-                };
+            let pos = if tower_query.iter().any(|pos| pos.0 == last_tile.0) {
+                START_TILE
+            } else {
+                last_tile.0
+            };
 
-                transform.translation = map_to_world(pos);
+            transform.translation = map_to_world(pos);
 
-                for item_entity in item_query.iter_many(children) {
-                    commands.entity(item_entity).despawn_recursive();
-                }
+            for item_entity in item_query.iter_many(children) {
+                commands.entity(item_entity).despawn_recursive();
             }
         }
     }
@@ -482,28 +499,28 @@ fn spawn_player(
                 InputManagerBundle::<Action> {
                     action_state: ActionState::default(),
                     input_map: InputMap::default()
-                        .insert(KeyCode::Space, Action::Jump)
-                        .insert(GamepadButtonType::South, Action::Jump)
-                        .insert(KeyCode::R, Action::Grab)
-                        .insert(GamepadButtonType::West, Action::Grab)
-                        .insert(DualAxis::left_stick(), Action::Run)
+                        .insert(Action::Jump, KeyCode::Space)
+                        .insert(Action::Jump, GamepadButtonType::South)
+                        .insert(Action::Grab, KeyCode::KeyR)
+                        .insert(Action::Grab, GamepadButtonType::West)
+                        .insert(Action::Run, DualAxis::left_stick())
                         .insert(
-                            VirtualDPad {
-                                up: QwertyScanCode::W.into(),
-                                down: QwertyScanCode::S.into(),
-                                left: QwertyScanCode::A.into(),
-                                right: QwertyScanCode::D.into(),
-                            },
                             Action::Run,
+                            VirtualDPad {
+                                up: KeyCode::KeyW.into(),
+                                down: KeyCode::KeyS.into(),
+                                left: KeyCode::KeyA.into(),
+                                right: KeyCode::KeyD.into(),
+                            },
                         )
                         .insert(
-                            VirtualDPad {
-                                up: QwertyScanCode::Up.into(),
-                                down: QwertyScanCode::Down.into(),
-                                left: QwertyScanCode::Left.into(),
-                                right: QwertyScanCode::Right.into(),
-                            },
                             Action::Run,
+                            VirtualDPad {
+                                up: KeyCode::ArrowUp.into(),
+                                down: KeyCode::ArrowDown.into(),
+                                left: KeyCode::ArrowLeft.into(),
+                                right: KeyCode::ArrowRight.into(),
+                            },
                         )
                         .build(),
                 },
@@ -565,7 +582,7 @@ fn grab(
         return;
     };
 
-    if !action_state.just_pressed(Action::Grab) {
+    if !action_state.just_pressed(&Action::Grab) {
         return;
     }
 
@@ -580,8 +597,8 @@ fn grab(
     if grabbed_item_query.iter_many(children).next().is_some() {
         commands.spawn(AudioBundle {
             source: game_audio.bad.clone(),
-            settings: PlaybackSettings::ONCE
-                .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+            settings: PlaybackSettings::DESPAWN
+                .with_volume(Volume::new(**audio_setting as f32 / 100.)),
         });
 
         return;
@@ -598,7 +615,7 @@ fn build_tower(
     mut commands: Commands,
     player_query: Query<(&Children, &ActionState<Action>, &SelectedTile), With<Player>>,
     grabbed_item_query: Query<(Entity, &Item)>,
-    invalid_pos_query: Query<&TilePos, Or<(With<MovingFloor>, With<Tower>, With<ItemSpawner>)>>,
+    invalid_tile_query: Query<(), Or<(With<MovingFloor>, With<PlacedTower>, With<ItemSpawner>)>>,
     game_audio: Res<Sounds>,
     audio_setting: Res<SfxSetting>,
     mut events: EventWriter<SpawnTowerEvent>,
@@ -607,7 +624,7 @@ fn build_tower(
         return;
     };
 
-    if !action_state.just_pressed(Action::Grab) {
+    if !action_state.just_pressed(&Action::Grab) {
         return;
     }
 
@@ -622,31 +639,33 @@ fn build_tower(
     let Some(selected_tile) = selected_tile.0 else {
         commands.spawn(AudioBundle {
             source: game_audio.bad.clone(),
-            settings: PlaybackSettings::ONCE
-                .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+            settings: PlaybackSettings::DESPAWN
+                .with_volume(Volume::new(**audio_setting as f32 / 100.)),
         });
         return;
     };
 
-    let invalid = invalid_pos_query.iter().any(|pos| pos.0 == selected_tile);
+    let invalid = invalid_tile_query.get(selected_tile).is_ok();
     if invalid {
         commands.spawn(AudioBundle {
             source: game_audio.bad.clone(),
-            settings: PlaybackSettings::ONCE
-                .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+            settings: PlaybackSettings::DESPAWN
+                .with_volume(Volume::new(**audio_setting as f32 / 100.)),
         });
         return;
     }
 
     commands.entity(entity).despawn_recursive();
-    events.send(SpawnTowerEvent(selected_tile))
+
+    events.send(SpawnTowerEvent(selected_tile));
 }
 
 fn feed_tower(
     mut commands: Commands,
     player_query: Query<(&Children, &ActionState<Action>, &SelectedTile), With<Player>>,
     grabbed_item_query: Query<(Entity, &Item)>,
-    mut tower_query: Query<(&TilePos, &mut Ammo), With<Tower>>,
+    placed_tower_query: Query<&PlacedTower>,
+    mut tower_query: Query<&mut Ammo, With<Tower>>,
     game_audio: Res<Sounds>,
     audio_setting: Res<SfxSetting>,
 ) {
@@ -654,7 +673,7 @@ fn feed_tower(
         return;
     };
 
-    if !action_state.just_pressed(Action::Grab) {
+    if !action_state.just_pressed(&Action::Grab) {
         return;
     }
 
@@ -669,21 +688,27 @@ fn feed_tower(
     let Some(selected_tile) = selected_tile.0 else {
         commands.spawn(AudioBundle {
             source: game_audio.bad.clone(),
-            settings: PlaybackSettings::ONCE
-                .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+            settings: PlaybackSettings::DESPAWN
+                .with_volume(Volume::new(**audio_setting as f32 / 100.)),
         });
 
         return;
     };
 
-    let Some((_, mut ammo)) = tower_query
-        .iter_mut()
-        .find(|(pos, _)| pos.0 == selected_tile)
-    else {
+    let Ok(placed_tower) = placed_tower_query.get(selected_tile) else {
         commands.spawn(AudioBundle {
             source: game_audio.bad.clone(),
-            settings: PlaybackSettings::ONCE
-                .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+            settings: PlaybackSettings::DESPAWN
+                .with_volume(Volume::new(**audio_setting as f32 / 100.)),
+        });
+        return;
+    };
+
+    let Ok(mut ammo) = tower_query.get_mut(placed_tower.0) else {
+        commands.spawn(AudioBundle {
+            source: game_audio.bad.clone(),
+            settings: PlaybackSettings::DESPAWN
+                .with_volume(Volume::new(**audio_setting as f32 / 100.)),
         });
         return;
     };
@@ -692,8 +717,7 @@ fn feed_tower(
 
     commands.spawn(AudioBundle {
         source: game_audio.feed.clone(),
-        settings: PlaybackSettings::ONCE
-            .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+        settings: PlaybackSettings::DESPAWN.with_volume(Volume::new(**audio_setting as f32 / 100.)),
     });
 
     commands.entity(entity).despawn_recursive();
@@ -715,7 +739,7 @@ fn start_music(
         AudioBundle {
             source: audio_assets.music.clone(),
             settings: PlaybackSettings::LOOP
-                .with_volume(Volume::new_absolute(**music_setting as f32 / 100.)),
+                .with_volume(Volume::new(**music_setting as f32 / 100.)),
         },
         MusicController,
         Persist,

@@ -2,7 +2,7 @@ use bevy::{
     audio::{AudioSink, Volume},
     prelude::*,
 };
-use bevy_ui_navigation::prelude::*;
+use bevy_alt_ui_navigation_lite::prelude::*;
 
 use crate::{
     loading::{Fonts, Sounds},
@@ -242,7 +242,7 @@ fn setup_menu(
                         color: UI_TEXT,
                     },
                 )
-                .with_alignment(TextAlignment::Right),
+                .with_justify(JustifyText::Right),
                 ..Default::default()
             });
             parent.spawn(TextBundle {
@@ -357,8 +357,7 @@ fn sfx_volume(mut commands: Commands, sfx_setting: Res<SfxSetting>, game_audio: 
 
     commands.spawn(AudioBundle {
         source: game_audio.build.clone(),
-        settings: PlaybackSettings::ONCE
-            .with_volume(Volume::new_absolute(**sfx_setting as f32 / 100.)),
+        settings: PlaybackSettings::DESPAWN.with_volume(Volume::new(**sfx_setting as f32 / 100.)),
     });
 }
 

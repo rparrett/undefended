@@ -2,10 +2,11 @@ use bevy::audio::Volume;
 use bevy::math::Vec3Swizzles;
 use bevy::{prelude::*, utils::HashSet};
 use bevy_rapier3d::prelude::*;
+use bevy_two_entities::tuple::TupleQueryExt;
 
 use crate::enemy::{HitPoints, PathIndex};
 use crate::loading::Sounds;
-use crate::map::{TilePos, PATH};
+use crate::map::{PlacedTower, TilePos, PATH};
 use crate::settings::SfxSetting;
 use crate::{enemy::Enemy, loading::Models, map::map_to_world, GameState};
 
@@ -22,7 +23,7 @@ pub struct Target(pub Option<Entity>);
 pub struct InRange(pub HashSet<Entity>);
 
 #[derive(Event)]
-pub struct SpawnTowerEvent(pub UVec2);
+pub struct SpawnTowerEvent(pub Entity);
 
 #[derive(Component)]
 pub struct RangeSensor;
@@ -122,23 +123,23 @@ fn ranging(
     for evt in collision_events.read() {
         match evt {
             CollisionEvent::Started(e1, e2, _) => {
-                let range_sensor = range_sensor_query.iter_many([e1, e2]).next();
-                let enemy = enemy_query.iter_many([e1, e2]).next();
+                let queries = (&range_sensor_query, &enemy_query);
+                let Some((range_sensor_parent, enemy_entity)) = queries.get_both(*e1, *e2) else {
+                    continue;
+                };
 
-                if let (Some(range_sensor_entity), Some(enemy_entity)) = (range_sensor, enemy) {
-                    if let Ok(mut in_range) = tower_query.get_mut(range_sensor_entity.get()) {
-                        in_range.0.insert(enemy_entity);
-                    }
+                if let Ok(mut in_range) = tower_query.get_mut(range_sensor_parent.get()) {
+                    in_range.0.insert(enemy_entity);
                 }
             }
             CollisionEvent::Stopped(e1, e2, _) => {
-                let range_sensor = range_sensor_query.iter_many([e1, e2]).next();
-                let enemy = enemy_query.iter_many([e1, e2]).next();
+                let queries = (&range_sensor_query, &enemy_query);
+                let Some((range_sensor_parent, enemy_entity)) = queries.get_both(*e1, *e2) else {
+                    continue;
+                };
 
-                if let (Some(range_sensor_entity), Some(enemy_entity)) = (range_sensor, enemy) {
-                    if let Ok(mut in_range) = tower_query.get_mut(range_sensor_entity.get()) {
-                        in_range.0.remove(&enemy_entity);
-                    }
+                if let Ok(mut in_range) = tower_query.get_mut(range_sensor_parent.get()) {
+                    in_range.0.remove(&enemy_entity);
                 }
             }
         }
@@ -182,21 +183,32 @@ fn targeting(
     }
 }
 
-fn spawn(mut commands: Commands, mut events: EventReader<SpawnTowerEvent>, models: Res<Models>) {
+fn spawn(
+    mut commands: Commands,
+    mut events: EventReader<SpawnTowerEvent>,
+    tile_pos_query: Query<&TilePos>,
+    models: Res<Models>,
+) {
     for event in events.read() {
-        commands
+        let Ok(tile_pos) = tile_pos_query.get(event.0) else {
+            continue;
+        };
+
+        let entity = commands
             .spawn((
                 Tower,
                 Name::new("Tower"),
                 SceneBundle {
                     scene: models.tower_base.clone(),
-                    transform: Transform::from_translation(map_to_world(event.0) + Vec3::Y * 0.75),
+                    transform: Transform::from_translation(
+                        map_to_world(tile_pos.0) + Vec3::Y * 0.75,
+                    ),
                     ..default()
                 },
                 Target(None),
                 InRange::default(),
                 Cooldown(Timer::from_seconds(2.5, TimerMode::Repeating)),
-                TilePos(event.0),
+                TilePos(tile_pos.0),
                 Ammo::new(20),
                 RigidBody::Fixed,
                 Collider::cuboid(1.0, 3.0, 1.0),
@@ -221,7 +233,10 @@ fn spawn(mut commands: Commands, mut events: EventReader<SpawnTowerEvent>, model
                     ActiveCollisionTypes::STATIC_STATIC,
                     ActiveEvents::COLLISION_EVENTS,
                 ));
-            });
+            })
+            .id();
+
+        commands.entity(event.0).insert(PlacedTower(entity));
     }
 }
 
@@ -237,8 +252,7 @@ fn build_sound(
 
     commands.spawn(AudioBundle {
         source: game_audio.build.clone(),
-        settings: PlaybackSettings::ONCE
-            .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+        settings: PlaybackSettings::DESPAWN.with_volume(Volume::new(**audio_setting as f32 / 100.)),
     });
 }
 
@@ -285,7 +299,7 @@ fn shooting(
             Name::new("Laser"),
             PbrBundle {
                 transform: laser_transform,
-                mesh: meshes.add(shape::Box::new(0.1, 0.1, 0.1).into()),
+                mesh: meshes.add(Cuboid::new(0.1, 0.1, 0.1)),
                 material: material.0.clone(),
                 ..default()
             },
@@ -332,8 +346,8 @@ fn laser_sound(
         if ammo.current == 0 {
             commands.spawn(AudioBundle {
                 source: game_audio.powerdown.clone(),
-                settings: PlaybackSettings::ONCE
-                    .with_volume(Volume::new_absolute(**audio_setting as f32 / 100.)),
+                settings: PlaybackSettings::DESPAWN
+                    .with_volume(Volume::new(**audio_setting as f32 / 100.)),
             });
         }
     }

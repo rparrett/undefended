@@ -42,14 +42,13 @@ fn setup(
             },
             ..default()
         },
-        UiCameraConfig { show_ui: false },
         layer,
         Persist,
     ));
 
     commands.spawn((
         MaterialMesh2dBundle {
-            mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
+            mesh: meshes.add(Rectangle::default()).into(),
             material: mat2d.add(StarfieldMaterial::default()),
             ..default()
         },
