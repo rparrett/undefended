@@ -20,7 +20,7 @@ leafwing-input-manager = "0.13"
 bevy-alt-ui-navigation-lite = { git = "https://github.com/rparrett/bevy-alt-ui-navigation-lite/" }
 bevy_mod_debugdump = { version = "0.10", optional = true }
 bevy_pipelines_ready = "0.3.0"
-bevy_two_entities = { path = "../bevy_two_entities" }
+bevy_two_entities = { git = "https://github.com/rparrett/bevy_two_entities/" }
 bevy-tnua = "0.15.0"
 bevy-tnua-physics-integration-layer = "0.2.0"
 bevy-tnua-rapier3d = "0.3.0"

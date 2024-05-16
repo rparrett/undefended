@@ -1149,6 +1149,7 @@ dependencies = [
 [[package]]
 name = "bevy_two_entities"
 version = "0.1.0"
+source = "git+https://github.com/rparrett/bevy_two_entities/#b2a9589516a263cc698948e77f84c38a42f4bfcc"
 dependencies = [
  "bevy",
 ]
