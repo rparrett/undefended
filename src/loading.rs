@@ -3,7 +3,7 @@ use bevy_asset_loader::prelude::*;
 use bevy_mod_outline::{OutlineBundle, OutlineVolume};
 use bevy_pipelines_ready::{PipelinesReady, PipelinesReadyPlugin};
 
-use crate::{GameState, GrabbedItem};
+use crate::GameState;
 
 pub struct LoadingPlugin;
 
