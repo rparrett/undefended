@@ -6,6 +6,7 @@ use std::{fs::File, io::Write};
 use bevy::{
     audio::Volume, pbr::CascadeShadowConfigBuilder, prelude::*, transform::TransformSystem,
 };
+use bevy_alt_ui_navigation_lite::{systems::InputMapping, DefaultNavigationPlugins};
 use bevy_dolly::prelude::*;
 #[cfg(feature = "inspector")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -13,7 +14,6 @@ use bevy_rapier3d::prelude::*;
 use bevy_tnua::prelude::*;
 use bevy_tnua_rapier3d::{TnuaRapier3dIOBundle, TnuaRapier3dPlugin, TnuaRapier3dSensorShape};
 use bevy_two_entities::tuple::{TupleQueryExt, TupleQueryMutExt};
-use bevy_ui_navigation::{systems::InputMapping, DefaultNavigationPlugins};
 use game_over::GameOverPlugin;
 use leafwing_input_manager::prelude::*;
 

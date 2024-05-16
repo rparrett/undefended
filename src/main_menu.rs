@@ -2,7 +2,7 @@ use bevy::{
     audio::{AudioSink, Volume},
     prelude::*,
 };
-use bevy_ui_navigation::prelude::*;
+use bevy_alt_ui_navigation_lite::prelude::*;
 
 use crate::{
     loading::{Fonts, Sounds},

@@ -1,6 +1,6 @@
 use bevy::{prelude::*, ui::UiSystem, utils::Duration};
 use bevy_dolly::system::DollyUpdateSet;
-use bevy_ui_navigation::prelude::*;
+use bevy_alt_ui_navigation_lite::prelude::*;
 
 use crate::{
     loading::{Fonts, Images},
