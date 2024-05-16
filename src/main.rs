@@ -4,7 +4,8 @@
 use std::{fs::File, io::Write};
 
 use bevy::{
-    audio::Volume, pbr::CascadeShadowConfigBuilder, prelude::*, transform::TransformSystem,
+    asset::AssetMetaCheck, audio::Volume, pbr::CascadeShadowConfigBuilder, prelude::*,
+    transform::TransformSystem,
 };
 use bevy_alt_ui_navigation_lite::{systems::InputMapping, DefaultNavigationPlugins};
 use bevy_dolly::prelude::*;
@@ -117,6 +118,11 @@ const CAMERA_OFFSET: Vec3 = Vec3::new(0., 10., 6.);
 
 fn main() {
     let mut app = App::new();
+
+    // Workaround for Bevy attempting to load .meta files in wasm builds. On itch,
+    // the CDN serves HTTP 403 errors instead of 404 when files don't exist, which
+    // causes Bevy to break.
+    app.insert_resource(AssetMetaCheck::Never);
 
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
