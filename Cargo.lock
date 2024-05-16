@@ -325,7 +325,8 @@ dependencies = [
 [[package]]
 name = "bevy-alt-ui-navigation-lite"
 version = "0.1.0"
-source = "git+https://github.com/rparrett/bevy-alt-ui-navigation-lite/#31182d43d316539fee3e0d399db96898ac9bf464"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b4ac61a5f2ada8aadaa36b24a45a739b3afda74f218f5333f9f4b9a4a9ac57f"
 dependencies = [
  "bevy",
  "non-empty-vec",

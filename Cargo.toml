@@ -16,7 +16,7 @@ bevy_dolly = { version = "0.0.3" }
 bevy_asset_loader = "0.20.0"
 bevy-inspector-egui = { version = "0.23", optional = true }
 leafwing-input-manager = "0.13"
-bevy-alt-ui-navigation-lite = { git = "https://github.com/rparrett/bevy-alt-ui-navigation-lite/" }
+bevy-alt-ui-navigation-lite = "0.1"
 bevy_mod_debugdump = { version = "0.10", optional = true }
 bevy_pipelines_ready = "0.3.0"
 bevy_two_entities = "0.1"
