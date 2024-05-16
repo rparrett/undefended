@@ -1,6 +1,6 @@
 use bevy::{prelude::*, ui::UiSystem, utils::Duration};
-use bevy_dolly::system::DollyUpdateSet;
 use bevy_alt_ui_navigation_lite::prelude::*;
+use bevy_dolly::system::DollyUpdateSet;
 
 use crate::{
     loading::{Fonts, Images},
@@ -22,9 +22,6 @@ pub const UI_TEXT: Color = Color::PINK;
 pub const ALT_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
 pub const CONTAINER_BACKGROUND: Color = Color::rgb(0.1, 0.1, 0.1);
 pub const OVERLAY: Color = Color::rgba(0.0, 0.0, 0.0, 0.6);
-
-#[derive(Component)]
-pub struct GameUiMarker;
 
 #[derive(Component)]
 pub struct FollowInWorld(Entity);
