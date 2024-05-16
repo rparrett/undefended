@@ -345,7 +345,6 @@ fn update_camera(player_query: Query<&Transform, With<Player>>, mut rig_query: Q
 }
 
 fn cursor(
-    mut commands: Commands,
     mut collision_events: EventReader<CollisionEvent>,
     cursor_query: Query<&Parent, With<Cursor>>,
     floor_query: Query<Entity, With<Floor>>,
@@ -365,7 +364,7 @@ fn cursor(
             }
             CollisionEvent::Stopped(e1, e2, _) => {
                 let queries = (&cursor_query, &floor_query);
-                let Some((cursor, floor_entity)) = queries.get_both(*e1, *e2) else {
+                let Some((cursor, _floor_entity)) = queries.get_both(*e1, *e2) else {
                     continue;
                 };
 
