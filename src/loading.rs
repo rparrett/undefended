@@ -1,8 +1,9 @@
 use bevy::{pbr::CascadeShadowConfigBuilder, prelude::*};
 use bevy_asset_loader::prelude::*;
+use bevy_mod_outline::{OutlineBundle, OutlineVolume};
 use bevy_pipelines_ready::{PipelinesReady, PipelinesReadyPlugin};
 
-use crate::GameState;
+use crate::{GameState, GrabbedItem};
 
 pub struct LoadingPlugin;
 
@@ -64,9 +65,9 @@ pub struct Images {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-const EXPECTED_PIPELINES: usize = 15;
+const EXPECTED_PIPELINES: usize = 22;
 #[cfg(target_arch = "wasm32")]
-const EXPECTED_PIPELINES: usize = 13;
+const EXPECTED_PIPELINES: usize = 20;
 
 impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
@@ -81,7 +82,10 @@ impl Plugin for LoadingPlugin {
             )
             .add_systems(
                 Update,
-                pipelines_done.run_if(in_state(GameState::Pipelines)),
+                (
+                    pipelines_print.run_if(resource_changed::<PipelinesReady>),
+                    pipelines_done.run_if(in_state(GameState::Pipelines)),
+                ),
             )
             .add_systems(OnExit(GameState::Pipelines), cleanup)
             .add_systems(OnEnter(GameState::Pipelines), setup_pipelines);
@@ -123,6 +127,15 @@ fn setup_pipelines(
             material: path_mat.clone(),
             ..default()
         },
+        // Make sure this gets outlined so that outline pipelines are created
+        OutlineBundle {
+            outline: OutlineVolume {
+                width: 1.,
+                colour: Color::WHITE,
+                visible: true,
+            },
+            ..default()
+        },
     ));
 
     commands.spawn((
@@ -145,9 +158,11 @@ fn setup_pipelines(
     ));
 }
 
-fn pipelines_done(ready: Res<PipelinesReady>, mut next_state: ResMut<NextState<GameState>>) {
+fn pipelines_print(ready: Res<PipelinesReady>) {
     info!("Pipelines Ready: {}/{}", ready.get(), EXPECTED_PIPELINES);
+}
 
+fn pipelines_done(ready: Res<PipelinesReady>, mut next_state: ResMut<NextState<GameState>>) {
     if ready.get() >= EXPECTED_PIPELINES {
         next_state.set(GameState::MainMenu);
     }
