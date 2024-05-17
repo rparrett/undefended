@@ -214,7 +214,6 @@ fn main() {
     {
         app.add_plugins(WorldInspectorPlugin::new());
         app.add_plugins(RapierDebugRenderPlugin::default());
-        app.register_type::<SelectedTilePos>();
         app.register_type::<SelectedTile>();
         app.register_type::<SelectedItem>();
     }
