@@ -109,18 +109,11 @@ fn movement(
 
         for descendant in children_query.iter_descendants(entity) {
             if let Ok(mut head) = tower_head_query.get_mut(descendant) {
-                info!("current: {:?}", head.rotation.to_euler(EulerRot::XYZ));
-                info!(
-                    "target: {:?}",
-                    Quat::from_rotation_y(diff_xz.angle_between(-Vec2::Y)).to_euler(EulerRot::XYZ)
-                );
-
                 head.rotation = head.rotation.slerp(
                     Quat::from_rotation_y(diff_xz.angle_between(-Vec2::Y)),
                     time.delta_seconds() * 10.,
                 );
 
-                info!("next: {:?}", head.rotation.to_euler(EulerRot::XYZ));
                 break;
             }
         }
@@ -248,16 +241,6 @@ fn spawn(
                 AsyncSceneInheritOutline,
             ))
             .with_children(|parent| {
-                // parent.spawn((
-                //     TowerHead,
-                //     Name::new("TowerHead"),
-                //     SceneBundle {
-                //         scene: models.tower_head.clone(),
-                //         transform: Transform::from_translation(Vec3::Y * 1.5),
-                //         ..default()
-                //     },
-                // ));
-
                 parent.spawn((
                     RangeSensor,
                     SpatialBundle::default(),
@@ -321,11 +304,6 @@ fn shooting(
             warn!("headless tower?");
             continue;
         };
-
-        // let Some(head) = tower_head_query.iter_many(children).next() else {
-
-        //     continue;
-        // };
 
         let (scale, rotation, translation) = head.to_scale_rotation_translation();
         let laser_transform = Transform {
