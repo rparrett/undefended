@@ -109,10 +109,18 @@ fn movement(
 
         for descendant in children_query.iter_descendants(entity) {
             if let Ok(mut head) = tower_head_query.get_mut(descendant) {
+                info!("current: {:?}", head.rotation.to_euler(EulerRot::XYZ));
+                info!(
+                    "target: {:?}",
+                    Quat::from_rotation_y(diff_xz.angle_between(-Vec2::Y)).to_euler(EulerRot::XYZ)
+                );
+
                 head.rotation = head.rotation.slerp(
                     Quat::from_rotation_y(diff_xz.angle_between(-Vec2::Y)),
                     time.delta_seconds() * 10.,
                 );
+
+                info!("next: {:?}", head.rotation.to_euler(EulerRot::XYZ));
                 break;
             }
         }
