@@ -12,6 +12,7 @@ use bevy_dolly::prelude::*;
 #[cfg(feature = "inspector")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
+use bevy_scene_hook::HookPlugin;
 use bevy_tnua::prelude::*;
 use bevy_tnua_rapier3d::{TnuaRapier3dIOBundle, TnuaRapier3dPlugin, TnuaRapier3dSensorShape};
 use bevy_two_entities::tuple::{TupleQueryExt, TupleQueryMutExt};
@@ -193,7 +194,8 @@ fn main() {
             keyboard_navigation: true,
             ..default()
         })
-        .add_plugins(DefaultNavigationPlugins);
+        .add_plugins(DefaultNavigationPlugins)
+        .add_plugins(HookPlugin);
 
     app.init_resource::<Lives>()
         .register_type::<Lives>()

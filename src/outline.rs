@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_mod_outline::{
-    AutoGenerateOutlineNormalsPlugin, OutlineBundle, OutlinePlugin as ActualOutlinePlugin,
-    OutlineVolume,
+    AsyncSceneInheritOutlinePlugin, AutoGenerateOutlineNormalsPlugin, InheritOutlineBundle,
+    OutlineBundle, OutlinePlugin as ActualOutlinePlugin, OutlineVolume,
 };
 
 use crate::{
@@ -15,6 +15,7 @@ impl Plugin for OutlinePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(ActualOutlinePlugin)
             .add_plugins(AutoGenerateOutlineNormalsPlugin)
+            .add_plugins(AsyncSceneInheritOutlinePlugin)
             .add_systems(Update, update_inner)
             .add_systems(Update, remove_inner)
             .add_systems(Update, update);
@@ -33,23 +34,34 @@ fn update_inner(
     children_query: Query<&Children>,
     mesh_query: Query<Entity, With<Handle<Mesh>>>,
 ) {
-    for (entity, inner_mesh_outline) in &query {
-        for descendant in children_query.iter_descendants(entity) {
-            if let Ok(mesh_entity) = mesh_query.get(descendant) {
-                // TODO we may be able to fix the "separate outline for tower head and body"
-                // problem by only adding the OutlineBundle to the toplevel mesh and then adding
-                // InheritOutlineBundle to every descendant of that mesh.
-                commands.entity(mesh_entity).insert(OutlineBundle {
-                    outline: OutlineVolume {
-                        width: inner_mesh_outline.width,
-                        colour: inner_mesh_outline.color,
-                        visible: true,
-                    },
-                    ..default()
-                });
-            }
-        }
-    }
+    // let mut added = false;
+
+    // for (entity, inner_mesh_outline) in &query {
+    //     for descendant in children_query.iter_descendants(entity) {
+    //         if !added {
+    //             if let Ok(mesh_entity) = mesh_query.get(descendant) {
+    //                 // TODO we may be able to fix the "separate outline for tower head and body"
+    //                 // problem by only adding the OutlineBundle to the toplevel mesh and then adding
+    //                 // InheritOutlineBundle to every descendant of that mesh.
+
+    //                 commands.entity(mesh_entity).insert(OutlineBundle {
+    //                     outline: OutlineVolume {
+    //                         width: inner_mesh_outline.width,
+    //                         colour: inner_mesh_outline.color,
+    //                         visible: true,
+    //                     },
+    //                     ..default()
+    //                 });
+
+    //                 added = true;
+    //             }
+    //         } else {
+    //             commands
+    //                 .entity(descendant)
+    //                 .insert(InheritOutlineBundle::default());
+    //         }
+    //     }
+    // }
 }
 
 fn remove_inner(
@@ -92,14 +104,14 @@ fn update(
         Ok(Item::LaserAmmo) => {
             // Outline towers
 
-            if let Some(entity) = tile.0 {
-                if let Ok(placed_tower) = placed_tower_query.get(entity) {
-                    commands.entity(placed_tower.0).insert(InnerMeshOutline {
-                        width: 3.,
-                        color: Color::hsla(160., 0.9, 0.5, 1.0),
-                    });
-                }
-            }
+            // if let Some(entity) = tile.0 {
+            //     if let Ok(placed_tower) = placed_tower_query.get(entity) {
+            //         commands.entity(placed_tower.0).insert(InnerMeshOutline {
+            //             width: 3.,
+            //             color: Color::hsla(160., 0.9, 0.5, 1.0),
+            //         });
+            //     }
+            // }
         }
         Ok(Item::TowerKit) => {
             // Outline valid tiles for tower placement

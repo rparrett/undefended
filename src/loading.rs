@@ -22,7 +22,7 @@ pub struct Models {
     pub tile4: Handle<Scene>,
     #[asset(path = "models/itemspawner.glb#Scene0")]
     pub item_spawner: Handle<Scene>,
-    #[asset(path = "models/towerbase.glb#Scene0")]
+    #[asset(path = "models/tower.glb#Scene0")]
     pub tower_base: Handle<Scene>,
     #[asset(path = "models/towerheadsm.glb#Scene0")]
     pub tower_head: Handle<Scene>,

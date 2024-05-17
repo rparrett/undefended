@@ -1,7 +1,9 @@
 use bevy::audio::Volume;
 use bevy::math::Vec3Swizzles;
 use bevy::{prelude::*, utils::HashSet};
+use bevy_mod_outline::{AsyncSceneInheritOutline, OutlineBundle, OutlineVolume};
 use bevy_rapier3d::prelude::*;
+use bevy_scene_hook::{HookedSceneBundle, SceneHook};
 use bevy_two_entities::tuple::TupleQueryExt;
 
 use crate::enemy::{HitPoints, PathIndex};
@@ -88,12 +90,13 @@ impl Plugin for TowerPlugin {
 }
 
 fn movement(
-    mut tower_query: Query<(&Target, &Transform, &Children), (Without<Enemy>, Without<TowerHead>)>,
+    mut tower_query: Query<(Entity, &Target, &Transform), (Without<Enemy>, Without<TowerHead>)>,
     mut tower_head_query: Query<&mut Transform, With<TowerHead>>,
     target_query: Query<&Transform, (With<Enemy>, Without<TowerHead>)>,
     time: Res<Time>,
+    children_query: Query<&Children>,
 ) {
-    for (target, transform, children) in tower_query.iter_mut() {
+    for (entity, target, transform) in tower_query.iter_mut() {
         let Some(target_entity) = target.0 else {
             continue;
         };
@@ -104,12 +107,14 @@ fn movement(
 
         let diff_xz = (transform.translation - target_transform.translation).xz();
 
-        let mut iter = tower_head_query.iter_many_mut(children);
-        while let Some(mut tower_head) = iter.fetch_next() {
-            tower_head.rotation = tower_head.rotation.slerp(
-                Quat::from_rotation_y(diff_xz.angle_between(-Vec2::Y)),
-                time.delta_seconds() * 10.,
-            );
+        for descendant in children_query.iter_descendants(entity) {
+            if let Ok(mut head) = tower_head_query.get_mut(descendant) {
+                head.rotation = head.rotation.slerp(
+                    Quat::from_rotation_y(diff_xz.angle_between(-Vec2::Y)),
+                    time.delta_seconds() * 10.,
+                );
+                break;
+            }
         }
     }
 }
@@ -198,12 +203,23 @@ fn spawn(
             .spawn((
                 Tower,
                 Name::new("Tower"),
-                SceneBundle {
-                    scene: models.tower_base.clone(),
-                    transform: Transform::from_translation(
-                        map_to_world(tile_pos.0) + Vec3::Y * 0.75,
-                    ),
-                    ..default()
+                HookedSceneBundle {
+                    scene: SceneBundle {
+                        scene: models.tower_base.clone(),
+                        transform: Transform::from_translation(
+                            map_to_world(tile_pos.0) + Vec3::Y * 0.75,
+                        ),
+                        ..default()
+                    },
+                    hook: SceneHook::new(|entity, cmds| {
+                        match entity.get::<Name>().map(|t| t.as_str()) {
+                            Some("Head") => {
+                                cmds.insert(TowerHead);
+                                cmds
+                            }
+                            _ => cmds,
+                        };
+                    }),
                 },
                 Target(None),
                 InRange::default(),
@@ -213,17 +229,26 @@ fn spawn(
                 RigidBody::Fixed,
                 Collider::cuboid(1.0, 3.0, 1.0),
                 ActiveEvents::COLLISION_EVENTS,
+                OutlineBundle {
+                    outline: OutlineVolume {
+                        width: 5.0,
+                        colour: Color::WHITE,
+                        visible: true,
+                    },
+                    ..default()
+                },
+                AsyncSceneInheritOutline,
             ))
             .with_children(|parent| {
-                parent.spawn((
-                    TowerHead,
-                    Name::new("TowerHead"),
-                    SceneBundle {
-                        scene: models.tower_head.clone(),
-                        transform: Transform::from_translation(Vec3::Y * 1.5),
-                        ..default()
-                    },
-                ));
+                // parent.spawn((
+                //     TowerHead,
+                //     Name::new("TowerHead"),
+                //     SceneBundle {
+                //         scene: models.tower_head.clone(),
+                //         transform: Transform::from_translation(Vec3::Y * 1.5),
+                //         ..default()
+                //     },
+                // ));
 
                 parent.spawn((
                     RangeSensor,
@@ -258,15 +283,16 @@ fn build_sound(
 
 fn shooting(
     mut commands: Commands,
-    mut tower_query: Query<(&mut Cooldown, &mut Ammo, &Target, &Children), With<Tower>>,
+    mut tower_query: Query<(Entity, &mut Cooldown, &mut Ammo, &Target), With<Tower>>,
     tower_head_query: Query<&GlobalTransform, With<TowerHead>>,
     mut meshes: ResMut<Assets<Mesh>>,
     material: Res<LaserMaterial>,
     time: Res<Time>,
+    children_query: Query<&Children>,
 ) {
     let offset = Vec3::new(0., -0.2, 0.8);
 
-    for (mut cooldown, mut ammo, target, children) in tower_query.iter_mut() {
+    for (entity, mut cooldown, mut ammo, target) in tower_query.iter_mut() {
         cooldown.0.tick(time.delta());
         if !cooldown.0.just_finished() {
             continue;
@@ -280,10 +306,18 @@ fn shooting(
             continue;
         }
 
-        let Some(head) = tower_head_query.iter_many(children).next() else {
+        let Some(head) = children_query
+            .iter_descendants(entity)
+            .find_map(|descendant| tower_head_query.get(descendant).ok())
+        else {
             warn!("headless tower?");
             continue;
         };
+
+        // let Some(head) = tower_head_query.iter_many(children).next() else {
+
+        //     continue;
+        // };
 
         let (scale, rotation, translation) = head.to_scale_rotation_translation();
         let laser_transform = Transform {
