@@ -221,7 +221,7 @@ fn spawn(
                     },
                     hook: SceneHook::new(|entity, cmds| {
                         match entity.get::<Name>().map(|t| t.as_str()) {
-                            Some("Head") => {
+                            Some("HeadMesh") => {
                                 cmds.insert(TowerHead);
                                 cmds
                             }
