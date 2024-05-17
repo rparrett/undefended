@@ -36,6 +36,9 @@ fn update_inner(
     for (entity, inner_mesh_outline) in &query {
         for descendant in children_query.iter_descendants(entity) {
             if let Ok(mesh_entity) = mesh_query.get(descendant) {
+                // TODO we may be able to fix the "separate outline for tower head and body"
+                // problem by only adding the OutlineBundle to the toplevel mesh and then adding
+                // InheritOutlineBundle to every descendant of that mesh.
                 commands.entity(mesh_entity).insert(OutlineBundle {
                     outline: OutlineVolume {
                         width: inner_mesh_outline.width,
