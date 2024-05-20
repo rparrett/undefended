@@ -373,6 +373,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy-scene-hook"
+version = "10.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "089da39d9031fb7d3988d44f2e7e27c8075e66167d228127ab01670eb2c400d6"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
 name = "bevy-tnua"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3939,6 +3948,7 @@ dependencies = [
  "bevy",
  "bevy-alt-ui-navigation-lite",
  "bevy-inspector-egui",
+ "bevy-scene-hook",
  "bevy-tnua",
  "bevy-tnua-physics-integration-layer",
  "bevy-tnua-rapier3d",

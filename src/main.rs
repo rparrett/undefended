@@ -12,6 +12,7 @@ use bevy_dolly::prelude::*;
 #[cfg(feature = "inspector")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
+use bevy_scene_hook::HookPlugin;
 use bevy_tnua::prelude::*;
 use bevy_tnua_rapier3d::{TnuaRapier3dIOBundle, TnuaRapier3dPlugin, TnuaRapier3dSensorShape};
 use bevy_two_entities::tuple::{TupleQueryExt, TupleQueryMutExt};
@@ -25,7 +26,7 @@ use map::{
     map_to_world, Floor, Item, ItemSpawner, Lava, MapPlugin, MovingFloor, PlacedTower, TilePos,
     START_TILE,
 };
-use outline::{InnerMeshOutline, OutlinePlugin};
+use outline::OutlinePlugin;
 use save::SavePlugin;
 use settings::{MusicSetting, SfxSetting};
 use starfield::StarfieldPlugin;
@@ -193,7 +194,8 @@ fn main() {
             keyboard_navigation: true,
             ..default()
         })
-        .add_plugins(DefaultNavigationPlugins);
+        .add_plugins(DefaultNavigationPlugins)
+        .add_plugins(HookPlugin);
 
     app.init_resource::<Lives>()
         .register_type::<Lives>()
@@ -214,7 +216,6 @@ fn main() {
     {
         app.add_plugins(WorldInspectorPlugin::new());
         app.add_plugins(RapierDebugRenderPlugin::default());
-        app.register_type::<SelectedTilePos>();
         app.register_type::<SelectedTile>();
         app.register_type::<SelectedItem>();
     }
@@ -383,7 +384,6 @@ fn cursor(
 }
 
 fn item_probe(
-    mut commands: Commands,
     mut collision_events: EventReader<CollisionEvent>,
     probe_query: Query<&Parent, With<ItemProbe>>,
     item_query: Query<Entity, With<Item>>,
@@ -400,23 +400,16 @@ fn item_probe(
                 if let Ok(mut selected_item) = selected_item_query.get_mut(probe_entity.get()) {
                     selected_item.0 = Some(item_entity);
                 }
-
-                commands.entity(item_entity).insert(InnerMeshOutline {
-                    width: 3.,
-                    color: Color::hsla(160., 0.9, 0.5, 1.0),
-                });
             }
             CollisionEvent::Stopped(e1, e2, _) => {
                 let queries = (&probe_query, &item_query);
-                let Some((_, item_entity)) = queries.get_both(*e1, *e2) else {
+                if !queries.both(*e1, *e2) {
                     continue;
                 };
 
                 for mut selected_item in selected_item_query.iter_mut() {
                     selected_item.0 = None;
                 }
-
-                commands.entity(item_entity).remove::<InnerMeshOutline>();
             }
         }
     }
