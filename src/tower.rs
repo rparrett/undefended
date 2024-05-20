@@ -232,8 +232,8 @@ fn spawn(
                 ActiveEvents::COLLISION_EVENTS,
                 OutlineBundle {
                     outline: OutlineVolume {
-                        width: 5.0,
-                        colour: Color::WHITE,
+                        width: 3.0,
+                        colour: Color::hsla(160., 0.9, 0.5, 1.0),
                         visible: true,
                     },
                     ..default()

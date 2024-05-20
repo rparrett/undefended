@@ -1,6 +1,7 @@
 use std::{f32::consts::FRAC_PI_2, fmt::Display, time::Duration};
 
 use bevy::{prelude::*, utils::HashSet};
+use bevy_mod_outline::{AsyncSceneInheritOutline, OutlineBundle, OutlineVolume};
 use bevy_rapier3d::prelude::*;
 use bevy_tnua::TnuaPipelineStages;
 use rand::{seq::SliceRandom, thread_rng, Rng};
@@ -214,6 +215,15 @@ fn spawn_map(
                 TilePos(pos),
                 Collider::cuboid(TILE_SIZE.x / 2., TILE_SIZE.y / 2., TILE_SIZE.x / 2.),
                 ActiveEvents::COLLISION_EVENTS,
+                OutlineBundle {
+                    outline: OutlineVolume {
+                        width: 3.0,
+                        colour: Color::hsla(160., 0.9, 0.5, 1.0),
+                        visible: true,
+                    },
+                    ..default()
+                },
+                AsyncSceneInheritOutline,
             ));
 
             if *col_val == 3 {
@@ -361,6 +371,15 @@ fn item_spawner(
                 },
                 Collider::ball(0.6),
                 Sensor,
+                OutlineBundle {
+                    outline: OutlineVolume {
+                        width: 3.0,
+                        colour: Color::hsla(160., 0.9, 0.5, 1.0),
+                        visible: true,
+                    },
+                    ..default()
+                },
+                AsyncSceneInheritOutline,
             ))
             .id();
 
