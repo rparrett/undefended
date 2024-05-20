@@ -125,7 +125,6 @@ fn setup_pipelines(
         PbrBundle {
             mesh: meshes.add(Mesh::from(Cuboid::new(0.25, 0.25, 0.25))),
             material: path_mat.clone(),
-            transform: Transform::from_xyz(1., 0., 0.),
             ..default()
         },
         // Make sure this gets outlined so that outline pipelines are created
