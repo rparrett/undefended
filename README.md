@@ -32,6 +32,3 @@ All other assets are original creations by me for this project.
 - make LastTile a small FIFO in case the user places a tower on their own tile and then falls
 - add loading bar for assets and pipelines
 - upgrade towers by feeding them a tower kit?
-- use `bevy_mod_outline` to highlight
-  - where object will be placed (tower -> tile, or ammo -> tower)
-  - which object will be picked up
