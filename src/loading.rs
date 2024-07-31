@@ -24,8 +24,6 @@ pub struct Models {
     pub item_spawner: Handle<Scene>,
     #[asset(path = "models/tower.glb#Scene0")]
     pub tower_base: Handle<Scene>,
-    #[asset(path = "models/towerheadsm.glb#Scene0")]
-    pub tower_head: Handle<Scene>,
     #[asset(path = "models/towerkit.glb#Scene0")]
     pub tower_kit: Handle<Scene>,
     #[asset(path = "models/laserammo.glb#Scene0")]

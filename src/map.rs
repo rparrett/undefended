@@ -63,7 +63,7 @@ impl ItemSpawner {
         let mut timer = Timer::new(Duration::from_secs_f32(secs), TimerMode::Once);
 
         // make the first tick finish the timer
-        timer.set_elapsed(Duration::from_secs_f32(secs - std::f32::EPSILON));
+        timer.set_elapsed(Duration::from_secs_f32(secs - f32::EPSILON));
 
         Self {
             item,
