@@ -255,7 +255,7 @@ fn spawn_map(
     }
 
     let path_mat = materials.add(StandardMaterial {
-        base_color: Color::rgba(1.0, 0.0, 0.0, 0.3),
+        base_color: Srgba::new(1.0, 0.0, 0.0, 0.3).into(),
         alpha_mode: AlphaMode::Blend,
         ..default()
     });

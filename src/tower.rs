@@ -54,8 +54,8 @@ impl FromWorld for LaserMaterial {
     fn from_world(world: &mut World) -> Self {
         let mut materials = world.resource_mut::<Assets<StandardMaterial>>();
         Self(materials.add(StandardMaterial {
-            base_color: Color::YELLOW,
-            emissive: Color::WHITE,
+            base_color: bevy::color::palettes::basic::YELLOW.into(),
+            emissive: bevy::color::palettes::basic::WHITE.into(),
             unlit: true,
             ..default()
         }))

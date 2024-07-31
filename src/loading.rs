@@ -65,7 +65,7 @@ pub struct Images {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-const EXPECTED_PIPELINES: usize = 22;
+const EXPECTED_PIPELINES: usize = 24;
 #[cfg(target_arch = "wasm32")]
 const EXPECTED_PIPELINES: usize = 20;
 
@@ -115,7 +115,7 @@ fn setup_pipelines(
     ));
 
     let path_mat = materials.add(StandardMaterial {
-        base_color: Color::rgba(1.0, 0.0, 0.0, 0.3),
+        base_color: Srgba::new(1.0, 0.0, 0.0, 0.3).into(),
         alpha_mode: AlphaMode::Blend,
         ..default()
     });

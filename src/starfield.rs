@@ -3,7 +3,7 @@ use bevy::{
     prelude::*,
     reflect::TypePath,
     render::{
-        mesh::MeshVertexBufferLayout,
+        mesh::MeshVertexBufferLayoutRef,
         render_resource::{
             AsBindGroup, PrimitiveState, RenderPipelineDescriptor, ShaderRef,
             SpecializedMeshPipelineError,
@@ -42,7 +42,7 @@ fn setup(
             },
             ..default()
         },
-        layer,
+        layer.clone(),
         Persist,
     ));
 
@@ -80,7 +80,7 @@ impl Material2d for StarfieldMaterial {
 
     fn specialize(
         descriptor: &mut RenderPipelineDescriptor,
-        _: &MeshVertexBufferLayout,
+        _: &MeshVertexBufferLayoutRef,
         _: Material2dKey<Self>,
     ) -> Result<(), SpecializedMeshPipelineError> {
         descriptor.primitive = PrimitiveState::default();

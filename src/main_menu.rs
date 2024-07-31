@@ -69,17 +69,17 @@ fn setup_menu(
     let button_text_style = TextStyle {
         font: fonts.main.clone(),
         font_size: 30.0,
-        color: BUTTON_TEXT,
+        color: BUTTON_TEXT.into(),
     };
     let title_text_style = TextStyle {
         font: fonts.main.clone(),
         font_size: 60.0,
-        color: TITLE_TEXT,
+        color: TITLE_TEXT.into(),
     };
     let subtitle_text_style = TextStyle {
         font: fonts.main.clone(),
         font_size: 30.0,
-        color: TITLE_TEXT,
+        color: TITLE_TEXT.into(),
     };
 
     let container = commands
@@ -239,7 +239,7 @@ fn setup_menu(
                     TextStyle {
                         font: fonts.main.clone(),
                         font_size: 20.0,
-                        color: UI_TEXT,
+                        color: UI_TEXT.into(),
                     },
                 )
                 .with_justify(JustifyText::Right),
@@ -252,7 +252,7 @@ fn setup_menu(
                         style: TextStyle {
                             font: fonts.main.clone(),
                             font_size: 20.0,
-                            color: UI_TEXT,
+                            color: UI_TEXT.into(),
                         },
                     },
                     TextSection {
@@ -260,7 +260,7 @@ fn setup_menu(
                         style: TextStyle {
                             font: fonts.main.clone(),
                             font_size: 20.0,
-                            color: ALT_TEXT,
+                            color: ALT_TEXT.into(),
                         },
                     },
                 ]),
@@ -273,7 +273,7 @@ fn setup_menu(
                         style: TextStyle {
                             font: fonts.main.clone(),
                             font_size: 20.0,
-                            color: UI_TEXT,
+                            color: UI_TEXT.into(),
                         },
                     },
                     TextSection {
@@ -281,7 +281,7 @@ fn setup_menu(
                         style: TextStyle {
                             font: fonts.main.clone(),
                             font_size: 20.0,
-                            color: ALT_TEXT,
+                            color: ALT_TEXT.into(),
                         },
                     },
                 ]),

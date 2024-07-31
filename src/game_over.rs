@@ -33,7 +33,7 @@ fn spawn(mut commands: Commands, fonts: Res<Fonts>, won: Res<Won>) {
     let title_text_style = TextStyle {
         font: fonts.main.clone(),
         font_size: 60.0,
-        color: TITLE_TEXT,
+        color: TITLE_TEXT.into(),
     };
     let button_style = Style {
         width: Val::Px(250.0),
@@ -46,7 +46,7 @@ fn spawn(mut commands: Commands, fonts: Res<Fonts>, won: Res<Won>) {
     let button_text_style = TextStyle {
         font: fonts.main.clone(),
         font_size: 30.0,
-        color: BUTTON_TEXT,
+        color: BUTTON_TEXT.into(),
     };
 
     let root = commands

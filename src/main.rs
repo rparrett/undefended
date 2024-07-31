@@ -120,20 +120,25 @@ const CAMERA_OFFSET: Vec3 = Vec3::new(0., 10., 6.);
 fn main() {
     let mut app = App::new();
 
-    // Workaround for Bevy attempting to load .meta files in wasm builds. On itch,
-    // the CDN serves HTTP 403 errors instead of 404 when files don't exist, which
-    // causes Bevy to break.
-    app.insert_resource(AssetMetaCheck::Never);
-
-    app.add_plugins(DefaultPlugins.set(WindowPlugin {
-        primary_window: Some(Window {
-            title: "UNDEFENDED!".to_string(),
-            resizable: false,
-            canvas: Some("#bevy".to_string()),
-            ..default()
-        }),
-        ..default()
-    }));
+    app.add_plugins(
+        DefaultPlugins
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "UNDEFENDED!".to_string(),
+                    resizable: false,
+                    canvas: Some("#bevy".to_string()),
+                    ..default()
+                }),
+                ..default()
+            })
+            .set(AssetPlugin {
+                // Workaround for Bevy attempting to load .meta files in wasm builds. On itch,
+                // the CDN serves HTTP 403 errors instead of 404 when files don't exist, which
+                // causes Bevy to break.
+                meta_check: AssetMetaCheck::Never,
+                ..default()
+            }),
+    );
 
     app.init_state::<GameState>()
         .add_event::<SpawnPlayerEvent>();
@@ -180,8 +185,8 @@ fn main() {
         .add_systems(OnExit(GameState::GameOver), reset);
 
     app.add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
-        .add_plugins(TnuaControllerPlugin)
-        .add_plugins(TnuaRapier3dPlugin)
+        .add_plugins(TnuaControllerPlugin::default())
+        .add_plugins(TnuaRapier3dPlugin::default())
         .add_systems(
             PostUpdate,
             Dolly::<MainCamera>::update_active
