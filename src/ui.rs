@@ -11,17 +11,20 @@ use crate::{
     GameState, Lives, MainCamera,
 };
 
-pub const FOCUSED_BUTTON: Color = Color::rgb(0.25, 0.0, 0.25);
-pub const FOCUSED_HOVERED_BUTTON: Color = Color::rgb(0.35, 0., 0.35);
-pub const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
-pub const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
-pub const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
-pub const BUTTON_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
-pub const TITLE_TEXT: Color = Color::PINK;
-pub const UI_TEXT: Color = Color::PINK;
-pub const ALT_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
-pub const CONTAINER_BACKGROUND: Color = Color::rgb(0.1, 0.1, 0.1);
-pub const OVERLAY: Color = Color::rgba(0.0, 0.0, 0.0, 0.6);
+pub const FOCUSED_BUTTON: Srgba = Srgba::rgb(0.25, 0.0, 0.25);
+pub const FOCUSED_HOVERED_BUTTON: Srgba = Srgba::rgb(0.35, 0., 0.35);
+pub const NORMAL_BUTTON: Srgba = Srgba::rgb(0.15, 0.15, 0.15);
+pub const HOVERED_BUTTON: Srgba = Srgba::rgb(0.25, 0.25, 0.25);
+pub const PRESSED_BUTTON: Srgba = Srgba::rgb(0.35, 0.75, 0.35);
+pub const BUTTON_TEXT: Srgba = Srgba::rgb(0.9, 0.9, 0.9);
+pub const TITLE_TEXT: Srgba = bevy::color::palettes::css::DEEP_PINK;
+pub const UI_TEXT: Srgba = bevy::color::palettes::css::DEEP_PINK;
+pub const ALT_TEXT: Srgba = Srgba::rgb(0.9, 0.9, 0.9);
+pub const CONTAINER_BACKGROUND: Srgba = Srgba::rgb(0.1, 0.1, 0.1);
+pub const OVERLAY: Srgba = Srgba::new(0.0, 0.0, 0.0, 0.6);
+pub const AMMO: Srgba = bevy::color::palettes::css::YELLOW;
+pub const AMMO_EMPTY: Srgba = bevy::color::palettes::css::RED;
+pub const SPAWNER_TIMER: Srgba = bevy::color::palettes::css::YELLOW;
 
 #[derive(Component)]
 pub struct FollowInWorld(Entity);
@@ -77,12 +80,12 @@ fn setup(mut commands: Commands, fonts: Res<Fonts>) {
     let text_style = TextStyle {
         font: fonts.main.clone(),
         font_size: 20.,
-        color: UI_TEXT,
+        color: UI_TEXT.into(),
     };
     let text_style_alt = TextStyle {
         font: fonts.main.clone(),
         font_size: 20.,
-        color: ALT_TEXT,
+        color: ALT_TEXT.into(),
     };
 
     commands
@@ -348,7 +351,7 @@ fn spawn_ammo(
                             TextStyle {
                                 font: fonts.main.clone(),
                                 font_size: 20.,
-                                color: Color::YELLOW,
+                                color: AMMO.into(),
                             },
                         ),
                         ..default()
@@ -365,9 +368,9 @@ fn update_ammo(mut query: Query<(&mut Text, &AmmoText)>, ammo_query: Query<&Ammo
         };
 
         if ammo.current == 0 {
-            text.sections[0].style.color = Color::RED;
+            text.sections[0].style.color = AMMO_EMPTY.into();
         } else {
-            text.sections[0].style.color = Color::YELLOW;
+            text.sections[0].style.color = AMMO.into();
         }
 
         text.sections[0].value = format!("{}/{}", ammo.current, ammo.max);
@@ -405,7 +408,7 @@ fn spawn_item_spawners(
                             TextStyle {
                                 font: fonts.main.clone(),
                                 font_size: 20.,
-                                color: Color::YELLOW,
+                                color: SPAWNER_TIMER.into(),
                             },
                         ),
                         ..default()

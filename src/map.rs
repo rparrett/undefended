@@ -63,7 +63,7 @@ impl ItemSpawner {
         let mut timer = Timer::new(Duration::from_secs_f32(secs), TimerMode::Once);
 
         // make the first tick finish the timer
-        timer.set_elapsed(Duration::from_secs_f32(secs - std::f32::EPSILON));
+        timer.set_elapsed(Duration::from_secs_f32(secs - f32::EPSILON));
 
         Self {
             item,
@@ -255,7 +255,7 @@ fn spawn_map(
     }
 
     let path_mat = materials.add(StandardMaterial {
-        base_color: Color::rgba(1.0, 0.0, 0.0, 0.3),
+        base_color: Srgba::new(1.0, 0.0, 0.0, 0.3).into(),
         alpha_mode: AlphaMode::Blend,
         ..default()
     });

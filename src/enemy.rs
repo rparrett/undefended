@@ -19,6 +19,7 @@ pub struct Enemy;
 #[derive(Component)]
 pub struct HitPoints {
     pub current: u32,
+    #[allow(dead_code)]
     pub max: u32,
 }
 impl HitPoints {
