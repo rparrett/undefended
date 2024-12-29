@@ -1,6 +1,6 @@
 use bevy::{pbr::CascadeShadowConfigBuilder, prelude::*};
 use bevy_asset_loader::prelude::*;
-use bevy_mod_outline::{OutlineBundle, OutlineVolume};
+use bevy_mod_outline::OutlineVolume;
 use bevy_pipelines_ready::{PipelinesReady, PipelinesReadyPlugin};
 
 use crate::GameState;
@@ -96,21 +96,12 @@ fn setup_pipelines(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    commands.spawn((
-        PipelinesMarker,
-        TextBundle::from_section("Loading Pipelines...".to_string(), TextStyle::default()),
-    ));
+    commands.spawn((PipelinesMarker, Text::new("Loading Pipelines...")));
 
     // Spawn enough things to trigger the creation of all the pipelines required for the
     // game.
 
-    commands.spawn((
-        PipelinesMarker,
-        SceneBundle {
-            scene: models.player.clone(),
-            ..default()
-        },
-    ));
+    commands.spawn((PipelinesMarker, SceneRoot(models.player.clone())));
 
     let path_mat = materials.add(StandardMaterial {
         base_color: Srgba::new(1.0, 0.0, 0.0, 0.3).into(),
@@ -120,39 +111,30 @@ fn setup_pipelines(
 
     commands.spawn((
         PipelinesMarker,
-        PbrBundle {
-            mesh: meshes.add(Mesh::from(Cuboid::new(0.25, 0.25, 0.25))),
-            material: path_mat.clone(),
-            ..default()
-        },
+        Mesh3d(meshes.add(Mesh::from(Cuboid::new(0.25, 0.25, 0.25)))),
+        MeshMaterial3d(path_mat.clone()),
         // Make sure this gets outlined so that outline pipelines are created
-        OutlineBundle {
-            outline: OutlineVolume {
-                width: 1.,
-                colour: Color::WHITE,
-                visible: true,
-            },
-            ..default()
+        OutlineVolume {
+            width: 1.,
+            colour: Color::WHITE,
+            visible: true,
         },
     ));
 
     commands.spawn((
         PipelinesMarker,
-        DirectionalLightBundle {
-            directional_light: DirectionalLight {
-                illuminance: 2500.0,
-                shadows_enabled: true,
-                ..default()
-            },
-            transform: Transform::from_rotation(Quat::from_euler(EulerRot::YXZ, -1.0, -1.0, -1.0)),
-            cascade_shadow_config: CascadeShadowConfigBuilder {
-                first_cascade_far_bound: 4.0,
-                maximum_distance: 30.0,
-                ..default()
-            }
-            .into(),
+        DirectionalLight {
+            illuminance: 2500.0,
+            shadows_enabled: true,
             ..default()
         },
+        Transform::from_rotation(Quat::from_euler(EulerRot::YXZ, -1.0, -1.0, -1.0)),
+        CascadeShadowConfigBuilder {
+            first_cascade_far_bound: 4.0,
+            maximum_distance: 30.0,
+            ..default()
+        }
+        .build(),
     ));
 }
 
