@@ -10,22 +10,22 @@ inspector = ["bevy-inspector-egui"]
 debugdump = ["bevy_mod_debugdump"]
 
 [dependencies]
-bevy = "0.14"
-bevy_rapier3d = { version = "0.27", features = ["debug-render-3d"] }
-bevy_dolly = { version = "0.0.4" }
-bevy_asset_loader = "0.21.0"
-bevy-inspector-egui = { version = "0.25", optional = true }
-leafwing-input-manager = "0.14"
-bevy-alt-ui-navigation-lite = "0.2"
-bevy_mod_debugdump = { version = "0.11", optional = true }
-bevy_pipelines_ready = "0.4.0"
-bevy_two_entities = "0.2"
-bevy-tnua = "0.19.0"
-bevy-tnua-physics-integration-layer = "0.4.0"
-bevy-tnua-rapier3d = "0.7.0"
-bevy_mod_outline = "0.8.2"
-# https://github.com/nicopap/bevy-scene-hook/pull/12
-bevy-scene-hook = { git = "https://github.com/stargazing-dino/bevy-scene-hook", branch = "update-14.0" }
+bevy = "0.15"
+bevy_rapier3d = { version = "0.28", features = ["debug-render-3d"] }
+bevy_dolly = { version = "0.0.5" }
+bevy_asset_loader = "0.22.0"
+bevy-inspector-egui = { version = "0.28", optional = true }
+leafwing-input-manager = "0.16"
+bevy-alt-ui-navigation-lite = "0.3"
+bevy_mod_debugdump = { version = "0.12", optional = true }
+bevy_pipelines_ready = "0.5.0"
+bevy_two_entities = "0.3"
+bevy-tnua = "0.21.0"
+bevy-tnua-physics-integration-layer = "0.5.0"
+bevy-tnua-rapier3d = "0.8.0"
+bevy_mod_outline = "0.9"
+# https://github.com/nicopap/bevy-scene-hook/pull/13
+bevy-scene-hook = { git = "https://github.com/AlephCubed/bevy-scene-hook", rev = "7f944bcadd3f4c01cd4b6e436435ee4bda720910" }
 
 rand = "0.8.5"
 serde = "*"
