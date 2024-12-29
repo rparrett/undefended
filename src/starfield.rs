@@ -10,7 +10,7 @@ use bevy::{
         },
         view::RenderLayers,
     },
-    sprite::{Material2d, Material2dKey, Material2dPlugin, MaterialMesh2dBundle},
+    sprite::{Material2d, Material2dKey, Material2dPlugin},
 };
 
 use crate::{GameState, Persist, Player};
@@ -35,11 +35,9 @@ fn setup(
     let layer = RenderLayers::layer(1);
 
     commands.spawn((
-        Camera2dBundle {
-            camera: Camera {
-                order: -1,
-                ..default()
-            },
+        Camera2d,
+        Camera {
+            order: -1,
             ..default()
         },
         layer.clone(),
@@ -47,11 +45,8 @@ fn setup(
     ));
 
     commands.spawn((
-        MaterialMesh2dBundle {
-            mesh: meshes.add(Rectangle::default()).into(),
-            material: mat2d.add(StarfieldMaterial::default()),
-            ..default()
-        },
+        Mesh2d(meshes.add(Rectangle::default())),
+        MeshMaterial2d(mat2d.add(StarfieldMaterial::default())),
         Starfield,
         layer,
         Persist,
