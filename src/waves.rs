@@ -108,8 +108,8 @@ pub struct WaveState {
 impl From<&Wave> for WaveState {
     fn from(value: &Wave) -> Self {
         Self {
-            delay_timer: Timer::from_secs(value.delay, TimerMode::Once),
-            spawn_timer: Timer::from_secs(value.interval, TimerMode::Repeating),
+            delay_timer: Timer::from_seconds(value.delay, TimerMode::Once),
+            spawn_timer: Timer::from_seconds(value.interval, TimerMode::Repeating),
             remaining: value.num,
         }
     }

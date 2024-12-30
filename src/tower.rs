@@ -219,7 +219,7 @@ fn spawn(
                 Transform::from_translation(map_to_world(tile_pos.0) + Vec3::Y * 0.75),
                 Target(None),
                 InRange::default(),
-                Cooldown(Timer::from_secs(2.5, TimerMode::Repeating)),
+                Cooldown(Timer::from_seconds(2.5, TimerMode::Repeating)),
                 TilePos(tile_pos.0),
                 Ammo::new(20),
                 RigidBody::Fixed,
