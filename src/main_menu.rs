@@ -58,7 +58,7 @@ fn setup_menu(
     music: Res<MusicSetting>,
     difficulty: Res<DifficultySetting>,
 ) {
-    let button_style = Style {
+    let button_style = Node {
         width: Val::Px(250.0),
         height: Val::Px(45.0),
         margin: UiRect::all(Val::Px(5.0)),
@@ -66,99 +66,108 @@ fn setup_menu(
         align_items: AlignItems::Center,
         ..default()
     };
-    let button_text_style = TextStyle {
-        font: fonts.main.clone(),
-        font_size: 30.0,
-        color: BUTTON_TEXT.into(),
-    };
-    let title_text_style = TextStyle {
-        font: fonts.main.clone(),
-        font_size: 60.0,
-        color: TITLE_TEXT.into(),
-    };
-    let subtitle_text_style = TextStyle {
-        font: fonts.main.clone(),
-        font_size: 30.0,
-        color: TITLE_TEXT.into(),
-    };
+    let button_text_style = (
+        TextFont {
+            font: fonts.main.clone(),
+            font_size: 30.0,
+            ..default()
+        },
+        TextColor(BUTTON_TEXT.into()),
+    );
+    let title_text_style = (
+        TextFont {
+            font: fonts.main.clone(),
+            font_size: 60.0,
+            ..default()
+        },
+        TextColor(TITLE_TEXT.into()),
+    );
+    let subtitle_text_style = (
+        TextFont {
+            font: fonts.main.clone(),
+            font_size: 30.0,
+            ..default()
+        },
+        TextColor(TITLE_TEXT.into()),
+    );
 
     let container = commands
         .spawn((
-            NodeBundle {
-                style: Style {
-                    margin: UiRect::all(Val::Auto),
-                    flex_direction: FlexDirection::Column,
-                    align_items: AlignItems::Center,
-                    padding: UiRect::all(Val::Px(20.)),
-                    ..default()
-                },
-                background_color: CONTAINER_BACKGROUND.into(),
+            Node {
+                margin: UiRect::all(Val::Auto),
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                padding: UiRect::all(Val::Px(20.)),
                 ..default()
             },
+            BackgroundColor(CONTAINER_BACKGROUND.into()),
             MainMenuMarker,
         ))
         .id();
 
     let title = commands
-        .spawn(
-            TextBundle::from_section("UNDEFENDED!", title_text_style).with_style(Style {
+        .spawn((
+            Text::new("UNDEFENDED!"),
+            title_text_style,
+            Node {
                 margin: UiRect {
                     bottom: Val::Px(10.0),
                     ..default()
                 },
                 ..default()
-            }),
-        )
+            },
+        ))
         .id();
 
     let play_button = commands
         .spawn((
-            ButtonBundle {
-                style: button_style.clone(),
-                background_color: NORMAL_BUTTON.into(),
-                ..default()
-            },
+            Button,
+            button_style.clone(),
+            BackgroundColor(NORMAL_BUTTON.into()),
             Focusable::default(),
             MenuButton::Play,
             PlayButton,
         ))
         .with_children(|parent| {
-            parent.spawn(TextBundle::from_section("PLAY", button_text_style.clone()));
+            parent.spawn((Text::new("PLAY"), button_text_style.clone()));
         })
         .id();
 
     let audio_settings_title = commands
-        .spawn(
-            TextBundle::from_section("- AUDIO -", subtitle_text_style.clone()).with_style(Style {
+        .spawn((
+            Text::new("- AUDIO -"),
+            subtitle_text_style.clone(),
+            Node {
                 margin: UiRect::all(Val::Px(10.0)),
                 ..default()
-            }),
-        )
+            },
+        ))
         .id();
 
     let difficulty_title = commands
-        .spawn(
-            TextBundle::from_section("- DIFFICULTY -", subtitle_text_style).with_style(Style {
+        .spawn((
+            Text::new("- DIFFICULTY -"),
+            subtitle_text_style,
+            Node {
                 margin: UiRect::all(Val::Px(10.0)),
                 ..default()
-            }),
-        )
+            },
+        ))
         .id();
 
     let difficulty_button = commands
         .spawn((
-            ButtonBundle {
-                style: button_style.clone(),
-                background_color: NORMAL_BUTTON.into(),
-                ..default()
-            },
+            Button,
+            button_style.clone(),
+            BackgroundColor(NORMAL_BUTTON.into()),
             Focusable::default(),
             MenuButton::Difficulty,
             DifficultySettingButton,
         ))
         .with_children(|parent| {
             parent.spawn((
-                TextBundle::from_section(format!("{}", *difficulty), button_text_style.clone()),
+                Text::new(format!("{}", *difficulty)),
+                button_text_style.clone(),
                 DifficultySettingButtonText,
             ));
         })
@@ -166,18 +175,17 @@ fn setup_menu(
 
     let sfx_button = commands
         .spawn((
-            ButtonBundle {
-                style: button_style.clone(),
-                background_color: NORMAL_BUTTON.into(),
-                ..default()
-            },
+            Button,
+            button_style.clone(),
+            BackgroundColor(NORMAL_BUTTON.into()),
             Focusable::default(),
             MenuButton::Sfx,
             SfxSettingButton,
         ))
         .with_children(|parent| {
             parent.spawn((
-                TextBundle::from_section(format!("SFX {}%", **sfx), button_text_style.clone()),
+                Text::new(format!("SFX {}%", **sfx)),
+                button_text_style.clone(),
                 SfxSettingButtonText,
             ));
         })
@@ -185,18 +193,17 @@ fn setup_menu(
 
     let music_button = commands
         .spawn((
-            ButtonBundle {
-                style: button_style,
-                background_color: NORMAL_BUTTON.into(),
-                ..default()
-            },
+            Button,
+            button_style,
+            BackgroundColor(NORMAL_BUTTON.into()),
             Focusable::default(),
             MenuButton::Music,
             MusicSettingButton,
         ))
         .with_children(|parent| {
             parent.spawn((
-                TextBundle::from_section(format!("MUSIC {}%", **music), button_text_style),
+                Text::new(format!("MUSIC {}%", **music)),
+                button_text_style,
                 MusicSettingButtonText,
             ));
         })
@@ -214,79 +221,71 @@ fn setup_menu(
 
     commands
         .spawn((
-            NodeBundle {
-                style: Style {
-                    position_type: PositionType::Absolute,
-                    bottom: Val::Px(35.),
-                    margin: UiRect {
-                        left: Val::Auto,
-                        right: Val::Auto,
-                        ..default()
-                    },
-                    width: Val::Percent(100.),
-                    column_gap: Val::Px(10.),
-                    justify_content: JustifyContent::Center,
-                    ..Default::default()
+            Node {
+                position_type: PositionType::Absolute,
+                bottom: Val::Px(35.),
+                margin: UiRect {
+                    left: Val::Auto,
+                    right: Val::Auto,
+                    ..default()
                 },
+                width: Val::Percent(100.),
+                column_gap: Val::Px(10.),
+                justify_content: JustifyContent::Center,
                 ..default()
             },
             MainMenuMarker,
         ))
         .with_children(|parent| {
-            parent.spawn(TextBundle {
-                text: Text::from_section(
-                    " \nJUMP\nINTERACT\nMOVE",
-                    TextStyle {
+            parent.spawn((
+                Text::new(" \nJUMP\nINTERACT\nMOVE"),
+                TextFont {
+                    font: fonts.main.clone(),
+                    font_size: 20.0,
+                    ..default()
+                },
+                TextColor(UI_TEXT.into()),
+                TextLayout::new_with_justify(JustifyText::Right),
+            ));
+            parent
+                .spawn((
+                    Text::new("PAD\n"),
+                    TextFont {
                         font: fonts.main.clone(),
                         font_size: 20.0,
-                        color: UI_TEXT.into(),
+                        ..default()
                     },
-                )
-                .with_justify(JustifyText::Right),
-                ..Default::default()
-            });
-            parent.spawn(TextBundle {
-                text: Text::from_sections([
-                    TextSection {
-                        value: "PAD\n".to_string(),
-                        style: TextStyle {
-                            font: fonts.main.clone(),
-                            font_size: 20.0,
-                            color: UI_TEXT.into(),
-                        },
+                    TextColor(UI_TEXT.into()),
+                ))
+                .with_child((
+                    Text::new("SOUTH\nWEST\nL STICK"),
+                    TextFont {
+                        font: fonts.main.clone(),
+                        font_size: 20.0,
+                        ..default()
                     },
-                    TextSection {
-                        value: "SOUTH\nWEST\nL STICK".to_string(),
-                        style: TextStyle {
-                            font: fonts.main.clone(),
-                            font_size: 20.0,
-                            color: ALT_TEXT.into(),
-                        },
+                    TextColor(ALT_TEXT.into()),
+                ));
+
+            parent
+                .spawn((
+                    Text::new("BOARD\n"),
+                    TextFont {
+                        font: fonts.main.clone(),
+                        font_size: 20.0,
+                        ..default()
                     },
-                ]),
-                ..Default::default()
-            });
-            parent.spawn(TextBundle {
-                text: Text::from_sections([
-                    TextSection {
-                        value: "BOARD\n".to_string(),
-                        style: TextStyle {
-                            font: fonts.main.clone(),
-                            font_size: 20.0,
-                            color: UI_TEXT.into(),
-                        },
+                    TextColor(UI_TEXT.into()),
+                ))
+                .with_child((
+                    Text::new("SPACE\nR\nWASD OR ARROWS"),
+                    TextFont {
+                        font: fonts.main.clone(),
+                        font_size: 20.0,
+                        ..default()
                     },
-                    TextSection {
-                        value: "SPACE\nR\nWASD OR ARROWS".to_string(),
-                        style: TextStyle {
-                            font: fonts.main.clone(),
-                            font_size: 20.0,
-                            color: ALT_TEXT.into(),
-                        },
-                    },
-                ]),
-                ..Default::default()
-            });
+                    TextColor(ALT_TEXT.into()),
+                ));
         });
 }
 
@@ -324,7 +323,7 @@ fn button_actions(
                 }
 
                 for mut text in text_queries.p0().iter_mut() {
-                    text.sections[0].value = format!("SFX {}%", **sfx_setting);
+                    text.0 = format!("SFX {}%", **sfx_setting);
                 }
             }
             MenuButton::Music => {
@@ -335,14 +334,14 @@ fn button_actions(
                 }
 
                 for mut text in text_queries.p1().iter_mut() {
-                    text.sections[0].value = format!("MUSIC {}%", **music_setting);
+                    text.0 = format!("MUSIC {}%", **music_setting);
                 }
             }
             MenuButton::Difficulty => {
                 *difficulty_setting = difficulty_setting.next();
 
                 for mut text in text_queries.p2().iter_mut() {
-                    text.sections[0].value = format!("{}", *difficulty_setting);
+                    text.0 = format!("{}", *difficulty_setting);
                 }
             }
         }
@@ -355,10 +354,10 @@ fn sfx_volume(mut commands: Commands, sfx_setting: Res<SfxSetting>, game_audio: 
         return;
     }
 
-    commands.spawn(AudioBundle {
-        source: game_audio.build.clone(),
-        settings: PlaybackSettings::DESPAWN.with_volume(Volume::new(**sfx_setting as f32 / 100.)),
-    });
+    commands.spawn((
+        AudioPlayer(game_audio.build.clone()),
+        PlaybackSettings::DESPAWN.with_volume(Volume::new(**sfx_setting as f32 / 100.)),
+    ));
 }
 
 fn music_volume(
