@@ -77,121 +77,74 @@ impl Plugin for UiPlugin {
 }
 
 fn setup(mut commands: Commands, fonts: Res<Fonts>) {
-    let text_style = TextStyle {
-        font: fonts.main.clone(),
-        font_size: 20.,
-        color: UI_TEXT.into(),
-    };
-    let text_style_alt = TextStyle {
-        font: fonts.main.clone(),
-        font_size: 20.,
-        color: ALT_TEXT.into(),
-    };
+    let text_style = (
+        TextFont {
+            font: fonts.main.clone(),
+            font_size: 20.,
+            ..default()
+        },
+        TextColor(UI_TEXT.into()),
+    );
+    let text_style_alt = (
+        TextFont {
+            font: fonts.main.clone(),
+            font_size: 20.,
+            ..default()
+        },
+        TextColor(ALT_TEXT.into()),
+    );
 
     commands
         .spawn((
             Name::new("WaveInfoContainer"),
-            NodeBundle {
-                style: Style {
-                    flex_direction: FlexDirection::Column,
-                    width: Val::Px(165.),
-                    position_type: PositionType::Absolute,
-                    top: Val::Px(0.0),
-                    right: Val::Px(0.0),
-                    padding: UiRect::all(Val::Px(5.)),
-                    ..default()
-                },
-                background_color: OVERLAY.into(),
+            Node {
+                flex_direction: FlexDirection::Column,
+                width: Val::Px(165.),
+                position_type: PositionType::Absolute,
+                top: Val::Px(0.0),
+                right: Val::Px(0.0),
+                padding: UiRect::all(Val::Px(5.)),
                 ..default()
             },
+            BackgroundColor(OVERLAY.into()),
         ))
         .with_children(|parent| {
             parent
                 .spawn((
                     Name::new("WaveNumberContainer"),
-                    NodeBundle {
-                        style: Style {
-                            justify_content: JustifyContent::SpaceBetween,
-                            ..default()
-                        },
+                    Node {
+                        justify_content: JustifyContent::SpaceBetween,
                         ..default()
                     },
                 ))
                 .with_children(|parent| {
-                    parent.spawn(TextBundle {
-                        text: Text::from_sections([TextSection {
-                            value: "WAVE:".to_string(),
-                            style: text_style.clone(),
-                        }]),
-                        ..default()
-                    });
-                    parent.spawn((
-                        WaveText,
-                        TextBundle {
-                            text: Text::from_sections([
-                                TextSection {
-                                    value: "?".to_string(),
-                                    style: text_style_alt.clone(),
-                                },
-                                TextSection {
-                                    value: "/".to_string(),
-                                    style: text_style.clone(),
-                                },
-                                TextSection {
-                                    value: "?".to_string(),
-                                    style: text_style.clone(),
-                                },
-                            ]),
-                            ..default()
-                        },
-                    ));
+                    parent.spawn((Text::new("WAVE:"), text_style.clone()));
+                    parent
+                        .spawn((WaveText, Text::new("?"), text_style_alt.clone()))
+                        .with_child((TextSpan::new("/"), text_style.clone()))
+                        .with_child((TextSpan::new("?"), text_style.clone()));
                 });
 
             parent
                 .spawn((
                     Name::new("WaveTimerContainer"),
-                    NodeBundle {
-                        style: Style {
-                            justify_content: JustifyContent::SpaceBetween,
-                            ..default()
-                        },
+                    Node {
+                        justify_content: JustifyContent::SpaceBetween,
                         ..default()
                     },
                 ))
                 .with_children(|parent| {
-                    parent.spawn(TextBundle {
-                        text: Text::from_sections([TextSection {
-                            value: "TIME:".to_string(),
-                            style: text_style.clone(),
-                        }]),
-                        ..default()
-                    });
-                    parent.spawn((
-                        WaveTimerText,
-                        TextBundle {
-                            text: Text::from_sections([
-                                TextSection {
-                                    value: "--".to_string(),
-                                    style: text_style_alt.clone(),
-                                },
-                                TextSection {
-                                    value: "s".to_string(),
-                                    style: text_style.clone(),
-                                },
-                            ]),
-                            ..default()
-                        },
-                    ));
+                    parent.spawn((Text::new("TIME:"), text_style.clone()));
+                    parent
+                        .spawn((WaveTimerText, Text::new("--"), text_style_alt.clone()))
+                        .with_child((Text::new("s"), text_style.clone()));
                 });
 
             parent
                 .spawn((
                     Name::new("WaveStatsContainer"),
-                    NodeBundle {
-                        style: Style {
-                            justify_content: JustifyContent::SpaceBetween,
-                            ..default()
-                        },
+                    Node {
+                        justify_content: JustifyContent::SpaceBetween,
                         ..default()
                     },
                 ))
