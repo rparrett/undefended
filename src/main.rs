@@ -529,11 +529,10 @@ fn spawn_player(
                 TnuaRapier3dSensorShape(Collider::cylinder(0.0, 0.49)),
             ))
             .with_children(|parent| {
-                parent.spawn(SceneBundle {
-                    scene: models.player.clone(),
-                    transform: Transform::from_xyz(0., -0.4, 0.),
-                    ..default()
-                });
+                parent.spawn(
+                    SceneRoot(models.player.clone()),
+                    Transform::from_xyz(0., -0.4, 0.),
+                );
 
                 // probe for current tile
                 parent.spawn((
