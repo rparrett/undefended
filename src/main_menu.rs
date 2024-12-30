@@ -202,7 +202,7 @@ fn setup_menu(
         })
         .id();
 
-    commands.entity(container).push_children(&[
+    commands.entity(container).add_children(&[
         title,
         play_button,
         difficulty_title,
