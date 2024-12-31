@@ -725,6 +725,11 @@ fn game_over(
     }
 }
 
+// TODO this is not a good strategy. More and more things are
+// becoming entities, and it is very easy to accidentally despawn
+// something important.
+//
+// We are probably despawning some important observer even now.
 fn reset(
     mut commands: Commands,
     roots_query: Query<
@@ -734,6 +739,7 @@ fn reset(
             Without<Persist>,
             With<Children>,
             Without<Parent>,
+            Without<RapierConfiguration>,
         ),
     >,
     orphans_query: Query<
@@ -743,6 +749,7 @@ fn reset(
             Without<Persist>,
             Without<Children>,
             Without<Parent>,
+            Without<RapierConfiguration>,
         ),
     >,
 ) {
