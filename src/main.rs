@@ -473,6 +473,7 @@ fn spawn_player(
                 Player,
                 Name::new("Player"),
                 Transform::from_translation(map_to_world(event.0) + Vec3::Y * 0.5),
+                Visibility::default(),
                 RigidBody::Dynamic,
                 Velocity::default(),
                 Collider::capsule_y(0.30, 0.5),
