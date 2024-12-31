@@ -137,7 +137,7 @@ fn setup(mut commands: Commands, fonts: Res<Fonts>) {
                     parent.spawn((Text::new("TIME:"), text_style.clone()));
                     parent
                         .spawn((WaveTimerText, Text::new("--"), text_style_alt.clone()))
-                        .with_child((Text::new("s"), text_style.clone()));
+                        .with_child((TextSpan::new("s"), text_style.clone()));
                 });
 
             parent

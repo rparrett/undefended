@@ -52,6 +52,7 @@ struct Player;
 
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
 enum Action {
+    #[actionlike(DualAxis)]
     Run,
     Jump,
     Grab,
@@ -296,17 +297,10 @@ fn apply_controls(
         return;
     };
 
-    let mut direction = Vec3::ZERO;
-    let mut turn_in_place = false;
+    let axis_pair = action_state.clamped_axis_pair(&Action::Run);
 
-    if action_state.pressed(&Action::Run) {
-        let axis_pair = action_state.clamped_axis_pair(&Action::Run);
-
-        let vec = Vec3::new(axis_pair.x, 0., -axis_pair.y);
-        turn_in_place = vec.x.abs() < 0.3 && vec.z.abs() < 0.3;
-
-        direction += vec;
-    }
+    let direction = Vec3::new(axis_pair.x, 0., -axis_pair.y);
+    let turn_in_place = direction.x.abs() < 0.3 && direction.z.abs() < 0.3;
 
     let normalized = direction.normalize_or_zero();
     let with_speed = normalized * 4.3;
@@ -320,7 +314,7 @@ fn apply_controls(
             } else {
                 with_speed
             },
-            desired_forward: Some(Dir3::new_unchecked(normalized)),
+            desired_forward: direction.try_normalize().map(|v| Dir3::new_unchecked(v)),
             float_height: 1.0,
             cling_distance: 0.5,
             acceleration: 50.0,
