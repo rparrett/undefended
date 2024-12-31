@@ -33,7 +33,7 @@ fn spawn(mut commands: Commands, fonts: Res<Fonts>, won: Res<Won>) {
     let title_text_style = (
         TextFont {
             font: fonts.main.clone(),
-            font_size: 60.0,
+            font_size: 50.0,
             ..default()
         },
         TextColor(TITLE_TEXT.into()),
@@ -49,7 +49,7 @@ fn spawn(mut commands: Commands, fonts: Res<Fonts>, won: Res<Won>) {
     let button_text_style = (
         TextFont {
             font: fonts.main.clone(),
-            font_size: 30.0,
+            font_size: 25.0,
             ..default()
         },
         TextColor(BUTTON_TEXT.into()),

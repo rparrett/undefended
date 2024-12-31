@@ -69,7 +69,7 @@ fn setup_menu(
     let button_text_style = (
         TextFont {
             font: fonts.main.clone(),
-            font_size: 30.0,
+            font_size: 25.0,
             ..default()
         },
         TextColor(BUTTON_TEXT.into()),
@@ -77,7 +77,7 @@ fn setup_menu(
     let title_text_style = (
         TextFont {
             font: fonts.main.clone(),
-            font_size: 60.0,
+            font_size: 50.0,
             ..default()
         },
         TextColor(TITLE_TEXT.into()),
@@ -85,7 +85,7 @@ fn setup_menu(
     let subtitle_text_style = (
         TextFont {
             font: fonts.main.clone(),
-            font_size: 30.0,
+            font_size: 25.0,
             ..default()
         },
         TextColor(TITLE_TEXT.into()),
@@ -241,7 +241,7 @@ fn setup_menu(
                 Text::new(" \nJUMP\nINTERACT\nMOVE"),
                 TextFont {
                     font: fonts.main.clone(),
-                    font_size: 20.0,
+                    font_size: 16.0,
                     ..default()
                 },
                 TextColor(UI_TEXT.into()),
@@ -252,7 +252,7 @@ fn setup_menu(
                     Text::new("PAD\n"),
                     TextFont {
                         font: fonts.main.clone(),
-                        font_size: 20.0,
+                        font_size: 16.0,
                         ..default()
                     },
                     TextColor(UI_TEXT.into()),
@@ -261,7 +261,7 @@ fn setup_menu(
                     Text::new("SOUTH\nWEST\nL STICK"),
                     TextFont {
                         font: fonts.main.clone(),
-                        font_size: 20.0,
+                        font_size: 16.0,
                         ..default()
                     },
                     TextColor(ALT_TEXT.into()),
@@ -272,7 +272,7 @@ fn setup_menu(
                     Text::new("BOARD\n"),
                     TextFont {
                         font: fonts.main.clone(),
-                        font_size: 20.0,
+                        font_size: 16.0,
                         ..default()
                     },
                     TextColor(UI_TEXT.into()),
@@ -281,7 +281,7 @@ fn setup_menu(
                     Text::new("SPACE\nR\nWASD OR ARROWS"),
                     TextFont {
                         font: fonts.main.clone(),
-                        font_size: 20.0,
+                        font_size: 16.0,
                         ..default()
                     },
                     TextColor(ALT_TEXT.into()),

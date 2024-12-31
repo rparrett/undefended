@@ -80,7 +80,7 @@ fn setup(mut commands: Commands, fonts: Res<Fonts>) {
     let text_style = (
         TextFont {
             font: fonts.main.clone(),
-            font_size: 20.,
+            font_size: 16.,
             ..default()
         },
         TextColor(UI_TEXT.into()),
@@ -88,7 +88,7 @@ fn setup(mut commands: Commands, fonts: Res<Fonts>) {
     let text_style_alt = (
         TextFont {
             font: fonts.main.clone(),
-            font_size: 20.,
+            font_size: 16.,
             ..default()
         },
         TextColor(ALT_TEXT.into()),
@@ -274,7 +274,7 @@ fn spawn_ammo(
                     Text::new(format!("{}/{}", ammo.current, ammo.max)),
                     TextFont {
                         font: fonts.main.clone(),
-                        font_size: 20.,
+                        font_size: 16.,
                         ..default()
                     },
                     TextColor(AMMO.into()),
@@ -327,7 +327,7 @@ fn spawn_item_spawners(
                     Text::new("?"),
                     TextFont {
                         font: fonts.main.clone(),
-                        font_size: 20.,
+                        font_size: 16.,
                         ..default()
                     },
                     TextColor(SPAWNER_TIMER.into()),
