@@ -346,19 +346,19 @@ fn update_item_spawners(
         };
 
         if item_spawner.timer.remaining() == Duration::ZERO && item_spawner.spawned == 1 {
-            text.sections[0].value = format!("{}", item_spawner.item);
+            text.0 = format!("{}", item_spawner.item);
             *visibility = Visibility::Inherited;
         } else if item_spawner.timer.remaining() == Duration::ZERO {
             *visibility = Visibility::Hidden;
         } else {
-            text.sections[0].value = format!("0:{:0>2.0}", item_spawner.timer.remaining_secs());
+            text.0 = format!("0:{:0>2.0}", item_spawner.timer.remaining_secs());
             *visibility = Visibility::Inherited;
         }
     }
 }
 
 fn follow(
-    mut query: Query<(&mut Style, &FollowInWorld)>,
+    mut query: Query<(&mut Node, &FollowInWorld)>,
     world_query: Query<&GlobalTransform>,
     camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
 ) {
@@ -366,63 +366,65 @@ fn follow(
         return;
     };
 
-    for (mut style, follow) in query.iter_mut() {
+    for (mut node, follow) in query.iter_mut() {
         let Ok(world) = world_query.get(follow.0) else {
             continue;
         };
 
-        let Some(viewport) =
+        let Ok(viewport) =
             camera.world_to_viewport(camera_transform, world.translation() + Vec3::Y * 2.0)
         else {
             continue;
         };
 
-        let width = match style.width {
+        let width = match node.width {
             Val::Px(px) => px,
             _ => continue,
         };
 
-        style.left = Val::Px((viewport.x - width / 2.).round());
-        style.top = Val::Px(viewport.y);
+        node.left = Val::Px((viewport.x - width / 2.).round());
+        node.top = Val::Px(viewport.y);
     }
 }
 
-fn update_waves(mut query: Query<&mut Text, With<WaveText>>, waves: Res<Waves>) {
-    for mut text in query.iter_mut() {
+fn update_waves(query: Query<Entity, With<WaveText>>, waves: Res<Waves>, mut writer: TextUiWriter) {
+    for text in &query {
         let wave = if waves.current == waves.waves.len() {
             waves.current
         } else {
             waves.current + 1
         };
 
-        text.sections[0].value = format!("{}", wave);
-        text.sections[2].value = format!("{}", waves.waves.len());
+        *writer.text(text, 0) = format!("{}", wave);
+        *writer.text(text, 2) = format!("{}", waves.waves.len());
     }
 }
 
 fn update_wave_timer(
-    mut query: Query<&mut Text, With<WaveTimerText>>,
+    query: Query<Entity, With<WaveTimerText>>,
     wave_state: Res<WaveState>,
     waves: Res<Waves>,
+    mut writer: TextUiWriter,
 ) {
-    for mut text in query.iter_mut() {
+    for text in &query {
         if waves.current == waves.waves.len() {
-            text.sections[0].value = "--".to_string();
-            text.sections[1].value.clear();
+            *writer.text(text, 0) = "--".to_string();
+            writer.text(text, 1).clear();
         } else if wave_state.delay_timer.remaining() == Duration::ZERO {
-            text.sections[0].value = "NOW!".to_string();
-            text.sections[1].value.clear();
+            *writer.text(text, 0) = "NOW!".to_string();
+            writer.text(text, 1).clear();
         } else {
-            text.sections[0].value = format!("{:.1}", wave_state.delay_timer.remaining_secs());
-            text.sections[1].value = "s".to_string();
+            *writer.text(text, 0) = format!("{:.1}", wave_state.delay_timer.remaining_secs());
+            *writer.text(text, 1) = "s".to_string();
         };
     }
 }
 
 fn update_wave_stats(
-    mut query: Query<&mut Text, With<WaveStatsText>>,
+    query: Query<Entity, With<WaveStatsText>>,
     waves: Res<Waves>,
     difficulty: Res<DifficultySetting>,
+    mut writer: TextUiWriter,
 ) {
     let Some(current) = waves.current() else {
         return;
@@ -434,8 +436,8 @@ fn update_wave_stats(
         DifficultySetting::Extra => 2,
     };
 
-    for mut text in query.iter_mut() {
-        text.sections[0].value = format!("{}", current.num);
-        text.sections[2].value = format!("{}", current.hp + extra_hp);
+    for text in &query {
+        *writer.text(text, 0) = format!("{}", current.num);
+        *writer.text(text, 2) = format!("{}", current.hp + extra_hp);
     }
 }
