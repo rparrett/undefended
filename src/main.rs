@@ -730,6 +730,7 @@ fn game_over(
 // something important.
 //
 // We are probably despawning some important observer even now.
+// We are definitely despawning gamepads.
 fn reset(
     mut commands: Commands,
     roots_query: Query<
