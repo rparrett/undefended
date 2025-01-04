@@ -114,7 +114,7 @@ struct SpawnPlayerEvent(UVec2);
 struct Won(bool);
 
 #[derive(Component)]
-struct Persist;
+struct DespawnOnReset;
 
 const CAMERA_OFFSET: Vec3 = Vec3::new(0., 10., 6.);
 
@@ -266,6 +266,7 @@ fn setup(mut commands: Commands, mut spawn_player_events: EventWriter<SpawnPlaye
             ..default()
         }
         .build(),
+        DespawnOnReset,
     ));
 }
 
@@ -285,7 +286,6 @@ fn setup_camera(mut commands: Commands) {
             ..default()
         },
         Transform::from_translation(CAMERA_OFFSET).looking_at(Vec3::ZERO, Vec3::Y),
-        Persist,
     ));
 }
 
@@ -494,6 +494,7 @@ fn spawn_player(
                         .with_dual_axis(Action::Run, VirtualDPad::wasd())
                         .with_dual_axis(Action::Run, VirtualDPad::arrow_keys()),
                 },
+                DespawnOnReset,
             ))
             .insert((
                 TnuaRapier3dIOBundle::default(),
@@ -702,7 +703,6 @@ fn start_music(
         AudioPlayer(audio_assets.music.clone()),
         PlaybackSettings::LOOP.with_volume(Volume::new(**music_setting as f32 / 100.)),
         MusicController,
-        Persist,
     ));
 }
 
@@ -725,39 +725,8 @@ fn game_over(
     }
 }
 
-// TODO this is not a good strategy. More and more things are
-// becoming entities, and it is very easy to accidentally despawn
-// something important.
-//
-// We are probably despawning some important observer even now.
-// We are definitely despawning gamepads.
-fn reset(
-    mut commands: Commands,
-    roots_query: Query<
-        Entity,
-        (
-            Without<Window>,
-            Without<Persist>,
-            With<Children>,
-            Without<Parent>,
-            Without<RapierConfiguration>,
-        ),
-    >,
-    orphans_query: Query<
-        Entity,
-        (
-            Without<Window>,
-            Without<Persist>,
-            Without<Children>,
-            Without<Parent>,
-            Without<RapierConfiguration>,
-        ),
-    >,
-) {
-    for entity in roots_query.iter() {
-        commands.entity(entity).despawn_recursive();
-    }
-    for entity in orphans_query.iter() {
+fn reset(mut commands: Commands, to_despawn: Query<Entity, With<DespawnOnReset>>) {
+    for entity in to_despawn.iter() {
         commands.entity(entity).despawn_recursive();
     }
 

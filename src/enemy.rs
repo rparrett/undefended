@@ -5,7 +5,7 @@ use crate::{
     loading::{Models, Sounds},
     map::{map_to_world, PATH},
     settings::SfxSetting,
-    GameState, Lives,
+    DespawnOnReset, GameState, Lives,
 };
 
 pub struct EnemyPlugin;
@@ -56,6 +56,7 @@ fn spawn(mut commands: Commands, models: Res<Models>, mut events: EventReader<Sp
             Sensor,
             PathIndex(0),
             HitPoints::new(event.hp),
+            DespawnOnReset,
         ));
     }
 }

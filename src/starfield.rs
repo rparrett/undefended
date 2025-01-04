@@ -14,7 +14,7 @@ use bevy::{
     sprite::{Material2d, Material2dKey, Material2dPlugin},
 };
 
-use crate::{GameState, Persist, Player};
+use crate::{GameState, Player};
 
 // This attribute only exists to ensure that our starfield mesh ends up in its own
 // unique vertex buffer, which allows the built-in `FULLSCREEN_SHADER_HANDLE` vertex
@@ -59,7 +59,6 @@ fn setup(
             ..default()
         },
         layer.clone(),
-        Persist,
     ));
 
     commands.spawn((
@@ -67,7 +66,6 @@ fn setup(
         MeshMaterial2d(mat2d.add(StarfieldMaterial::default())),
         Starfield,
         layer,
-        Persist,
     ));
 }
 

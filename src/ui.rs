@@ -8,7 +8,7 @@ use crate::{
     settings::DifficultySetting,
     tower::Ammo,
     waves::{WaveState, Waves},
-    GameState, Lives, MainCamera,
+    DespawnOnReset, GameState, Lives, MainCamera,
 };
 
 pub const FOCUSED_BUTTON: Srgba = Srgba::rgb(0.25, 0.0, 0.25);
@@ -107,6 +107,7 @@ fn setup(mut commands: Commands, fonts: Res<Fonts>) {
                 ..default()
             },
             BackgroundColor(OVERLAY.into()),
+            DespawnOnReset,
         ))
         .with_children(|parent| {
             parent
@@ -172,6 +173,7 @@ fn setup_lives(mut commands: Commands, lives: Res<Lives>, images: Res<Images>) {
                 ..default()
             },
             BackgroundColor(OVERLAY.into()),
+            DespawnOnReset,
         ))
         .with_children(|parent| {
             for i in 0..lives.0 {
@@ -264,9 +266,9 @@ fn spawn_ammo(
                     ..default()
                 },
                 GlobalZIndex(-1),
-                // TODO I think we can opt out of UI rounding, right?
-                // We should do this for FollowInWorld.
+                // TODO Look into disabling UI rounding for these with Bevy 0.16.
                 FollowInWorld(entity),
+                DespawnOnReset,
             ))
             .with_children(|parent| {
                 parent.spawn((
@@ -320,6 +322,7 @@ fn spawn_item_spawners(
                 },
                 GlobalZIndex(-1),
                 FollowInWorld(entity),
+                DespawnOnReset,
             ))
             .with_children(|parent| {
                 parent.spawn((

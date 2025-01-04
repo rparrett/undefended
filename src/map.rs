@@ -6,7 +6,7 @@ use bevy_rapier3d::prelude::*;
 use bevy_tnua::TnuaPipelineStages;
 use rand::{seq::SliceRandom, thread_rng, Rng};
 
-use crate::{loading::Models, GameState};
+use crate::{loading::Models, DespawnOnReset, GameState};
 
 pub struct MapPlugin;
 
@@ -217,6 +217,7 @@ fn spawn_map(
                     visible: true,
                 },
                 AsyncSceneInheritOutline::default(),
+                DespawnOnReset,
             ));
 
             if *col_val == 3 {
@@ -277,6 +278,7 @@ fn spawn_map(
                 Mesh3d(meshes.add(Cuboid::new(0.25, 0.25, 0.25))),
                 MeshMaterial3d(path_mat.clone()),
                 Transform::from_translation(map_to_world(path_tile)),
+                DespawnOnReset,
             ));
         }
     }
@@ -286,6 +288,7 @@ fn spawn_map(
         Transform::from_translation(Vec3::new(0., LAVA_DEPTH, 0.)),
         Collider::halfspace(Vec3::Y).unwrap(),
         Sensor,
+        DespawnOnReset,
     ));
 }
 

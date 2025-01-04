@@ -10,6 +10,7 @@ use crate::enemy::{HitPoints, PathIndex};
 use crate::loading::Sounds;
 use crate::map::{PlacedTower, TilePos, PATH};
 use crate::settings::SfxSetting;
+use crate::DespawnOnReset;
 use crate::{enemy::Enemy, loading::Models, map::map_to_world, GameState};
 
 #[derive(Component)]
@@ -231,6 +232,7 @@ fn spawn(
                     visible: true,
                 },
                 AsyncSceneInheritOutline::default(),
+                DespawnOnReset,
             ))
             .with_children(|parent| {
                 parent.spawn((
@@ -314,6 +316,7 @@ fn shooting(
             MeshMaterial3d(material.0.clone()),
             laser_transform,
             Target(target.0),
+            DespawnOnReset,
         ));
     }
 }
