@@ -223,7 +223,7 @@ fn setup_menu(
         .spawn((
             Node {
                 position_type: PositionType::Absolute,
-                bottom: Val::Px(35.),
+                bottom: Val::Px(40.),
                 margin: UiRect {
                     left: Val::Auto,
                     right: Val::Auto,
@@ -238,54 +238,37 @@ fn setup_menu(
         ))
         .with_children(|parent| {
             parent.spawn((
-                Text::new(" \nJUMP\nINTERACT\nMOVE"),
+                Text::new("JUMP\nINTERACT\nMOVE"),
                 TextFont {
                     font: fonts.main.clone(),
-                    font_size: 16.0,
+                    font_size: 20.0,
                     ..default()
                 },
                 TextColor(UI_TEXT.into()),
                 TextLayout::new_with_justify(JustifyText::Right),
             ));
-            parent
-                .spawn((
-                    Text::new("PAD\n"),
-                    TextFont {
-                        font: fonts.main.clone(),
-                        font_size: 16.0,
-                        ..default()
-                    },
-                    TextColor(UI_TEXT.into()),
-                ))
-                .with_child((
-                    Text::new("SOUTH\nWEST\nL STICK"),
-                    TextFont {
-                        font: fonts.main.clone(),
-                        font_size: 16.0,
-                        ..default()
-                    },
-                    TextColor(ALT_TEXT.into()),
-                ));
-
-            parent
-                .spawn((
-                    Text::new("BOARD\n"),
-                    TextFont {
-                        font: fonts.main.clone(),
-                        font_size: 16.0,
-                        ..default()
-                    },
-                    TextColor(UI_TEXT.into()),
-                ))
-                .with_child((
-                    Text::new("SPACE\nR\nWASD OR ARROWS"),
-                    TextFont {
-                        font: fonts.main.clone(),
-                        font_size: 16.0,
-                        ..default()
-                    },
-                    TextColor(ALT_TEXT.into()),
-                ));
+            parent.spawn((
+                Text::new("\u{21A7}\n\u{21A4}\n\u{21CB}\u{21CE}"),
+                TextFont {
+                    font: fonts.prompts.clone(),
+                    font_size: 20.0,
+                    ..default()
+                },
+                TextColor(ALT_TEXT.into()),
+            ));
+            parent.spawn((
+                Text::new(concat!(
+                    "SPACE\n",
+                    "\u{FF32}\n",
+                    "\u{FF37}\u{FF21}\u{FF33}\u{FF24}\u{23F6}\u{23F4}\u{23F5}\u{23F7}"
+                )),
+                TextFont {
+                    font: fonts.prompts.clone(),
+                    font_size: 20.0,
+                    ..default()
+                },
+                TextColor(ALT_TEXT.into()),
+            ));
         });
 }
 

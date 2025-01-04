@@ -38,6 +38,8 @@ pub struct Models {
 pub struct Fonts {
     #[asset(path = "fonts/Orbitron-Medium.ttf")]
     pub main: Handle<Font>,
+    #[asset(path = "fonts/promptfont.ttf")]
+    pub prompts: Handle<Font>,
 }
 
 #[derive(AssetCollection, Resource)]
