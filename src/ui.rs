@@ -181,7 +181,7 @@ fn setup_lives(mut commands: Commands, lives: Res<Lives>, images: Res<Images>) {
 
                 parent.spawn((
                     ImageNode {
-                        image: images.heart.clone().into(),
+                        image: images.heart.clone(),
                         ..default()
                     },
                     Node {

@@ -314,7 +314,7 @@ fn apply_controls(
             } else {
                 with_speed
             },
-            desired_forward: direction.try_normalize().map(|v| Dir3::new_unchecked(v)),
+            desired_forward: direction.try_normalize().map(Dir3::new_unchecked),
             float_height: 1.0,
             cling_distance: 0.5,
             acceleration: 50.0,
