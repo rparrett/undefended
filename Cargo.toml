@@ -40,3 +40,19 @@ ron = "0.8.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys = { version = "*", features = ["console", "Window", "Storage"] }
+
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
+[profile.web-dist]
+inherits = "dist"
+opt-level = "s"
+
+# Enable only a small amount of optimization in debug mode
+[profile.dev]
+opt-level = 1
+
+# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
+[profile.dev.package."*"]
+opt-level = 3
