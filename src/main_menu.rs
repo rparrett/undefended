@@ -230,7 +230,7 @@ fn setup_menu(
                     ..default()
                 },
                 width: Val::Percent(100.),
-                column_gap: Val::Px(10.),
+                column_gap: Val::Px(20.),
                 justify_content: JustifyContent::Center,
                 ..default()
             },
@@ -238,7 +238,7 @@ fn setup_menu(
         ))
         .with_children(|parent| {
             parent.spawn((
-                Text::new("JUMP\nINTERACT\nMOVE"),
+                Text::new("MOVE\nJUMP\nINTERACT"),
                 TextFont {
                     font: fonts.main.clone(),
                     font_size: 20.0,
@@ -248,7 +248,7 @@ fn setup_menu(
                 TextLayout::new_with_justify(JustifyText::Right),
             ));
             parent.spawn((
-                Text::new("\u{21A7}\n\u{21A4}\n\u{21CB}\u{21CE}"),
+                Text::new("\u{21CB}\u{21CE}\n\u{21A7}\n\u{21A4}"),
                 TextFont {
                     font: fonts.prompts.clone(),
                     font_size: 20.0,
@@ -258,9 +258,9 @@ fn setup_menu(
             ));
             parent.spawn((
                 Text::new(concat!(
+                    "\u{FF37}\u{FF21}\u{FF33}\u{FF24}\u{23F6}\u{23F4}\u{23F5}\u{23F7}\n",
                     "SPACE\n",
-                    "\u{FF32}\n",
-                    "\u{FF37}\u{FF21}\u{FF33}\u{FF24}\u{23F6}\u{23F4}\u{23F5}\u{23F7}"
+                    "\u{FF32}"
                 )),
                 TextFont {
                     font: fonts.prompts.clone(),
