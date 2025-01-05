@@ -12,10 +12,17 @@ debugdump = ["bevy_mod_debugdump"]
 [dependencies]
 bevy = "0.15"
 bevy_rapier3d = { version = "0.28", features = ["debug-render-3d"] }
-bevy_dolly = { version = "0.0.5" }
+# See https://github.com/BlackPhlox/bevy_dolly/issues/74
+bevy_dolly = { version = "0.0.5", default-features = false, features = [
+    "drivers",
+] }
 bevy_asset_loader = "0.22.0"
 bevy-inspector-egui = { version = "0.28", optional = true }
-leafwing-input-manager = "0.16"
+# See https://github.com/Leafwing-Studios/leafwing-input-manager/issues/672
+leafwing-input-manager = { version = "0.16", default-features = false, features = [
+    "keyboard",
+    "gamepad",
+] }
 bevy-alt-ui-navigation-lite = "0.3"
 bevy_mod_debugdump = { version = "0.12", optional = true }
 bevy_pipelines_ready = "0.5.0"

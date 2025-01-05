@@ -691,7 +691,6 @@ dependencies = [
  "bevy",
  "bevy_math",
  "bevy_transform",
- "leafwing-input-manager",
 ]
 
 [[package]]
@@ -2734,12 +2733,13 @@ checksum = "fbf6a919d6cf397374f7dfeeea91d974c7c0a7221d0d0f4f20d859d329e53fcc"
 
 [[package]]
 name = "hexasphere"
-version = "15.0.0"
+version = "15.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "741ab88b8cc670443da777c3daab02cebf5a3caccfc04e3c052f55c94d1643fe"
+checksum = "d9c9e718d32b6e6b2b32354e1b0367025efdd0b11d6a740b905ddf5db1074679"
 dependencies = [
  "constgebra",
  "glam",
+ "tinyvec",
 ]
 
 [[package]]
@@ -5202,9 +5202,9 @@ dependencies = [
 
 [[package]]
 name = "wide"
-version = "0.7.30"
+version = "0.7.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58e6db2670d2be78525979e9a5f9c69d296fd7d670549fe9ebf70f8708cb5019"
+checksum = "cc0ca27312d1e9218687a4e804cd4b7410bf54125d54d13e5170efbf09066d24"
 dependencies = [
  "bytemuck",
  "safe_arch",

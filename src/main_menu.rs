@@ -272,7 +272,7 @@ fn setup_menu(
         });
 }
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 enum MenuButton {
     Play,
     Sfx,
