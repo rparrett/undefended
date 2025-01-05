@@ -1,12 +1,12 @@
 use std::{f32::consts::FRAC_PI_2, fmt::Display, time::Duration};
 
 use bevy::{prelude::*, utils::HashSet};
-use bevy_mod_outline::{AsyncSceneInheritOutline, OutlineBundle, OutlineVolume};
+use bevy_mod_outline::{AsyncSceneInheritOutline, OutlineVolume};
 use bevy_rapier3d::prelude::*;
 use bevy_tnua::TnuaPipelineStages;
 use rand::{seq::SliceRandom, thread_rng, Rng};
 
-use crate::{loading::Models, GameState};
+use crate::{loading::Models, DespawnOnReset, GameState};
 
 pub struct MapPlugin;
 
@@ -142,9 +142,23 @@ impl MovingFloorDirection {
     }
 }
 
+#[derive(Resource)]
+pub struct PathMaterial(pub Handle<StandardMaterial>);
+impl FromWorld for PathMaterial {
+    fn from_world(world: &mut World) -> Self {
+        let mut materials = world.resource_mut::<Assets<StandardMaterial>>();
+        Self(materials.add(StandardMaterial {
+            base_color: Srgba::new(1.0, 0.0, 0.0, 0.3).into(),
+            alpha_mode: AlphaMode::Blend,
+            ..default()
+        }))
+    }
+}
+
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Playing), spawn_map)
+        app.init_resource::<PathMaterial>()
+            .add_systems(OnEnter(GameState::Playing), spawn_map)
             // This must run before `TnuaPipelineStages::Sensors` or the player's movement
             // will not match up with the moving platform.
             .add_systems(
@@ -176,8 +190,8 @@ pub fn map_to_world(pos: UVec2) -> Vec3 {
 fn spawn_map(
     mut commands: Commands,
     models: Res<Models>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
+    path_material: Res<PathMaterial>,
 ) {
     let mut rng = thread_rng();
 
@@ -204,26 +218,20 @@ fn spawn_map(
 
             let mut cmds = commands.spawn((
                 Floor,
-                SceneBundle {
-                    scene: handle.clone(),
-                    transform: Transform::from_translation(map_to_world(pos) + Vec3::Y * -0.5)
-                        .with_rotation(Quat::from_rotation_y(
-                            rng.gen_range(0..3) as f32 * FRAC_PI_2,
-                        )),
-                    ..default()
-                },
+                SceneRoot(handle.clone()),
+                Transform::from_translation(map_to_world(pos) + Vec3::Y * -0.5).with_rotation(
+                    Quat::from_rotation_y(rng.gen_range(0..3) as f32 * FRAC_PI_2),
+                ),
                 TilePos(pos),
                 Collider::cuboid(TILE_SIZE.x / 2., TILE_SIZE.y / 2., TILE_SIZE.x / 2.),
                 ActiveEvents::COLLISION_EVENTS,
-                OutlineBundle {
-                    outline: OutlineVolume {
-                        width: 3.0,
-                        colour: Color::hsla(160., 0.9, 0.5, 1.0),
-                        visible: true,
-                    },
-                    ..default()
+                OutlineVolume {
+                    width: 3.0,
+                    colour: Color::hsla(160., 0.9, 0.5, 1.0),
+                    visible: true,
                 },
-                AsyncSceneInheritOutline,
+                AsyncSceneInheritOutline::default(),
+                DespawnOnReset,
             ));
 
             if *col_val == 3 {
@@ -254,11 +262,6 @@ fn spawn_map(
         }
     }
 
-    let path_mat = materials.add(StandardMaterial {
-        base_color: Srgba::new(1.0, 0.0, 0.0, 0.3).into(),
-        alpha_mode: AlphaMode::Blend,
-        ..default()
-    });
     for window in PATH.windows(2) {
         let (start, end) = (window[0], window[1]);
 
@@ -281,21 +284,20 @@ fn spawn_map(
         for path_tile in path_tiles {
             commands.spawn((
                 Name::new("PathDot"),
-                PbrBundle {
-                    mesh: meshes.add(Cuboid::new(0.25, 0.25, 0.25)),
-                    material: path_mat.clone(),
-                    transform: Transform::from_translation(map_to_world(path_tile)),
-                    ..default()
-                },
+                Mesh3d(meshes.add(Cuboid::new(0.25, 0.25, 0.25))),
+                MeshMaterial3d(path_material.0.clone()),
+                Transform::from_translation(map_to_world(path_tile)),
+                DespawnOnReset,
             ));
         }
     }
 
     commands.spawn((
         Lava,
-        SpatialBundle::from_transform(Transform::from_translation(Vec3::new(0., LAVA_DEPTH, 0.))),
+        Transform::from_translation(Vec3::new(0., LAVA_DEPTH, 0.)),
         Collider::halfspace(Vec3::Y).unwrap(),
         Sensor,
+        DespawnOnReset,
     ));
 }
 
@@ -325,7 +327,7 @@ fn moving_floor(
                     //
                     // See https://github.com/idanarye/bevy-tnua/issues/28.
 
-                    let step = floor.speed * time.delta_seconds();
+                    let step = floor.speed * time.delta_secs();
                     let adjusted_speed = floor.speed * (dist / step).min(1.);
 
                     if dist < 0.01 {
@@ -361,25 +363,19 @@ fn item_spawner(
             .spawn((
                 item_spawner.item,
                 Name::new("Item"),
-                SceneBundle {
-                    scene: match item_spawner.item {
-                        Item::LaserAmmo => models.laser_ammo.clone(),
-                        Item::TowerKit => models.tower_kit.clone(),
-                    },
-                    transform: Transform::from_xyz(0., 1.0, 0.),
-                    ..default()
-                },
+                SceneRoot(match item_spawner.item {
+                    Item::LaserAmmo => models.laser_ammo.clone(),
+                    Item::TowerKit => models.tower_kit.clone(),
+                }),
+                Transform::from_xyz(0., 1.0, 0.),
                 Collider::ball(0.6),
                 Sensor,
-                OutlineBundle {
-                    outline: OutlineVolume {
-                        width: 3.0,
-                        colour: Color::hsla(160., 0.9, 0.5, 1.0),
-                        visible: true,
-                    },
-                    ..default()
+                OutlineVolume {
+                    width: 3.0,
+                    colour: Color::hsla(160., 0.9, 0.5, 1.0),
+                    visible: true,
                 },
-                AsyncSceneInheritOutline,
+                AsyncSceneInheritOutline::default(),
             ))
             .id();
 
@@ -409,7 +405,7 @@ fn item_idle_movement(
             continue;
         }
 
-        transform.translation.y = 1.0 + (time.elapsed_seconds_wrapped() * 2.).sin() * 0.05;
-        transform.rotate_y(time.delta_seconds() * 0.3);
+        transform.translation.y = 1.0 + (time.elapsed_secs_wrapped() * 2.).sin() * 0.05;
+        transform.rotate_y(time.delta_secs() * 0.3);
     }
 }

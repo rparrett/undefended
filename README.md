@@ -8,6 +8,8 @@ For Bevy Jam #3. [v0.1.4](https://github.com/rparrett/undefended/tree/v0.1.4) is
 
 `Orbitron-Medium.ttf` is licensed under the SIL Open Font License.
 
+PromptFont by Yukari "Shinmera" Hafner, available at <https://shinmera.com/promptfont>.
+
 All other assets are original creations by me for this project.
 
 ## 3d workflow

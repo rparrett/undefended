@@ -5,7 +5,7 @@ use crate::{
     loading::{Models, Sounds},
     map::{map_to_world, PATH},
     settings::SfxSetting,
-    GameState, Lives,
+    DespawnOnReset, GameState, Lives,
 };
 
 pub struct EnemyPlugin;
@@ -48,17 +48,15 @@ fn spawn(mut commands: Commands, models: Res<Models>, mut events: EventReader<Sp
         commands.spawn((
             Enemy,
             Name::new("Enemy"),
-            SceneBundle {
-                scene: models.enemy1.clone(),
-                transform: Transform::from_translation(map_to_world(PATH[0])),
-                ..default()
-            },
+            SceneRoot(models.enemy1.clone()),
+            Transform::from_translation(map_to_world(PATH[0])),
             Collider::ball(0.5),
             ActiveEvents::COLLISION_EVENTS,
             ActiveCollisionTypes::STATIC_STATIC,
             Sensor,
             PathIndex(0),
             HitPoints::new(event.hp),
+            DespawnOnReset,
         ));
     }
 }
@@ -78,11 +76,11 @@ fn movement(
             let diff = world - transform.translation;
             let dist = diff.length();
 
-            let step = 1. * time.delta_seconds();
+            let step = 1. * time.delta_secs();
 
             let diff_xz = diff.xz();
-            transform.rotation = Quat::from_rotation_y(diff_xz.angle_between(Vec2::Y));
-            transform.rotate_local_z(time.elapsed_seconds());
+            transform.rotation = Quat::from_rotation_y(diff_xz.angle_to(Vec2::Y));
+            transform.rotate_local_z(time.elapsed_secs());
 
             if step < dist {
                 transform.translation.x += step / dist * (world.x - transform.translation.x);
@@ -93,11 +91,10 @@ fn movement(
                 path_index.0 += 1;
             }
         } else {
-            commands.spawn(AudioBundle {
-                source: game_audio.damage.clone(),
-                settings: PlaybackSettings::DESPAWN
-                    .with_volume(Volume::new(**audio_setting as f32 / 100.)),
-            });
+            commands.spawn((
+                AudioPlayer(game_audio.damage.clone()),
+                PlaybackSettings::DESPAWN.with_volume(Volume::new(**audio_setting as f32 / 100.)),
+            ));
 
             lives.0 = lives.0.saturating_sub(1);
             commands.entity(entity).despawn_recursive();

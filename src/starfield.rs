@@ -1,23 +1,41 @@
 use bevy::{
+    asset::RenderAssetUsages,
     core_pipeline::fullscreen_vertex_shader::FULLSCREEN_SHADER_HANDLE,
     prelude::*,
     reflect::TypePath,
     render::{
-        mesh::MeshVertexBufferLayoutRef,
+        mesh::{Indices, MeshVertexAttribute, MeshVertexBufferLayoutRef, PrimitiveTopology},
         render_resource::{
             AsBindGroup, PrimitiveState, RenderPipelineDescriptor, ShaderRef,
-            SpecializedMeshPipelineError,
+            SpecializedMeshPipelineError, VertexFormat,
         },
         view::RenderLayers,
     },
-    sprite::{Material2d, Material2dKey, Material2dPlugin, MaterialMesh2dBundle},
+    sprite::{Material2d, Material2dKey, Material2dPlugin},
 };
 
-use crate::{GameState, Persist, Player};
+use crate::{GameState, Player};
+
+// This attribute only exists to ensure that our starfield mesh ends up in its own
+// unique vertex buffer, which allows the built-in `FULLSCREEN_SHADER_HANDLE` vertex
+// shader to receive correct "local vertex indices" and this to function properly.
+//
+// Yes, this is sort of a ridiculous amount of effort to avoid using a custom
+// pipeline and vertex shader.
+const ATTRIBUTE_STARFIELD: MeshVertexAttribute =
+    MeshVertexAttribute::new("StarField", 0xbbbcb1d9d46bac97, VertexFormat::Float32);
 
 pub struct StarfieldPlugin;
 #[derive(Component)]
 struct Starfield;
+
+#[derive(Asset, AsBindGroup, TypePath, Debug, Default, Clone)]
+pub struct StarfieldMaterial {
+    #[uniform(0)]
+    pub pos: Vec2,
+    #[uniform(0)]
+    pub _wasm_padding: Vec2,
+}
 
 impl Plugin for StarfieldPlugin {
     fn build(&self, app: &mut App) {
@@ -35,26 +53,19 @@ fn setup(
     let layer = RenderLayers::layer(1);
 
     commands.spawn((
-        Camera2dBundle {
-            camera: Camera {
-                order: -1,
-                ..default()
-            },
+        Camera2d,
+        Camera {
+            order: -1,
             ..default()
         },
         layer.clone(),
-        Persist,
     ));
 
     commands.spawn((
-        MaterialMesh2dBundle {
-            mesh: meshes.add(Rectangle::default()).into(),
-            material: mat2d.add(StarfieldMaterial::default()),
-            ..default()
-        },
+        Mesh2d(meshes.add(starfield_mesh())),
+        MeshMaterial2d(mat2d.add(StarfieldMaterial::default())),
         Starfield,
         layer,
-        Persist,
     ));
 }
 
@@ -67,6 +78,18 @@ fn move_starfield(
             mat.1.pos = player.translation.truncate()
         }
     }
+}
+
+fn starfield_mesh() -> Mesh {
+    Mesh::new(
+        PrimitiveTopology::TriangleList,
+        RenderAssetUsages::default(),
+    )
+    .with_inserted_indices(Indices::U32(vec![0, 1, 2]))
+    // Bevy will panic if our mesh doesn't have positions. These get rewritten by
+    // the vertex shader.
+    .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, vec![[0.0, 0.0, 0.0]; 3])
+    .with_inserted_attribute(ATTRIBUTE_STARFIELD, vec![0.0; 3])
 }
 
 impl Material2d for StarfieldMaterial {
@@ -87,12 +110,4 @@ impl Material2d for StarfieldMaterial {
         descriptor.vertex.entry_point = "fullscreen_vertex_shader".into();
         Ok(())
     }
-}
-
-#[derive(Asset, AsBindGroup, TypePath, Debug, Default, Clone)]
-pub struct StarfieldMaterial {
-    #[uniform(0)]
-    pub pos: Vec2,
-    #[uniform(0)]
-    pub _wasm_padding: Vec2,
 }

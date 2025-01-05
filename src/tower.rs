@@ -1,7 +1,7 @@
 use bevy::audio::Volume;
 use bevy::math::Vec3Swizzles;
 use bevy::{prelude::*, utils::HashSet};
-use bevy_mod_outline::{AsyncSceneInheritOutline, OutlineBundle, OutlineVolume};
+use bevy_mod_outline::{AsyncSceneInheritOutline, OutlineVolume};
 use bevy_rapier3d::prelude::*;
 use bevy_scene_hook::{HookedSceneBundle, SceneHook};
 use bevy_two_entities::tuple::TupleQueryExt;
@@ -10,6 +10,7 @@ use crate::enemy::{HitPoints, PathIndex};
 use crate::loading::Sounds;
 use crate::map::{PlacedTower, TilePos, PATH};
 use crate::settings::SfxSetting;
+use crate::DespawnOnReset;
 use crate::{enemy::Enemy, loading::Models, map::map_to_world, GameState};
 
 #[derive(Component)]
@@ -49,7 +50,7 @@ impl Ammo {
 }
 
 #[derive(Resource)]
-struct LaserMaterial(Handle<StandardMaterial>);
+pub struct LaserMaterial(pub Handle<StandardMaterial>);
 impl FromWorld for LaserMaterial {
     fn from_world(world: &mut World) -> Self {
         let mut materials = world.resource_mut::<Assets<StandardMaterial>>();
@@ -110,8 +111,8 @@ fn movement(
         for descendant in children_query.iter_descendants(entity) {
             if let Ok(mut head) = tower_head_query.get_mut(descendant) {
                 head.rotation = head.rotation.slerp(
-                    Quat::from_rotation_y(diff_xz.angle_between(-Vec2::Y)),
-                    time.delta_seconds() * 10.,
+                    Quat::from_rotation_y(diff_xz.angle_to(-Vec2::Y)),
+                    time.delta_secs() * 10.,
                 );
 
                 break;
@@ -205,13 +206,7 @@ fn spawn(
                 Tower,
                 Name::new("Tower"),
                 HookedSceneBundle {
-                    scene: SceneBundle {
-                        scene: models.tower_base.clone(),
-                        transform: Transform::from_translation(
-                            map_to_world(tile_pos.0) + Vec3::Y * 0.75,
-                        ),
-                        ..default()
-                    },
+                    scene: SceneRoot(models.tower_base.clone()),
                     hook: SceneHook::new(|entity, cmds| {
                         match entity.get::<Name>().map(|t| t.as_str()) {
                             Some("HeadMesh") => {
@@ -222,6 +217,7 @@ fn spawn(
                         };
                     }),
                 },
+                Transform::from_translation(map_to_world(tile_pos.0) + Vec3::Y * 0.75),
                 Target(None),
                 InRange::default(),
                 Cooldown(Timer::from_seconds(2.5, TimerMode::Repeating)),
@@ -230,20 +226,19 @@ fn spawn(
                 RigidBody::Fixed,
                 Collider::cuboid(1.0, 3.0, 1.0),
                 ActiveEvents::COLLISION_EVENTS,
-                OutlineBundle {
-                    outline: OutlineVolume {
-                        width: 3.0,
-                        colour: Color::hsla(160., 0.9, 0.5, 1.0),
-                        visible: true,
-                    },
-                    ..default()
+                OutlineVolume {
+                    width: 3.0,
+                    colour: Color::hsla(160., 0.9, 0.5, 1.0),
+                    visible: true,
                 },
-                AsyncSceneInheritOutline,
+                AsyncSceneInheritOutline::default(),
+                DespawnOnReset,
             ))
             .with_children(|parent| {
                 parent.spawn((
                     RangeSensor,
-                    SpatialBundle::default(),
+                    Transform::default(),
+                    Visibility::default(),
                     Collider::ball(4.),
                     Sensor,
                     ActiveCollisionTypes::STATIC_STATIC,
@@ -266,10 +261,10 @@ fn build_sound(
         return;
     }
 
-    commands.spawn(AudioBundle {
-        source: game_audio.build.clone(),
-        settings: PlaybackSettings::DESPAWN.with_volume(Volume::new(**audio_setting as f32 / 100.)),
-    });
+    commands.spawn((
+        AudioPlayer(game_audio.build.clone()),
+        PlaybackSettings::DESPAWN.with_volume(Volume::new(**audio_setting as f32 / 100.)),
+    ));
 }
 
 fn shooting(
@@ -317,13 +312,11 @@ fn shooting(
         commands.spawn((
             Laser,
             Name::new("Laser"),
-            PbrBundle {
-                transform: laser_transform,
-                mesh: meshes.add(Cuboid::new(0.1, 0.1, 0.1)),
-                material: material.0.clone(),
-                ..default()
-            },
+            Mesh3d(meshes.add(Cuboid::new(0.1, 0.1, 0.1))),
+            MeshMaterial3d(material.0.clone()),
+            laser_transform,
             Target(target.0),
+            DespawnOnReset,
         ));
     }
 }
@@ -342,7 +335,7 @@ fn laser_movement(
         if let Ok((mut hp, enemy)) = enemy_query.get_mut(target_entity) {
             let diff = enemy.translation - transform.translation;
             let dist = diff.length();
-            let step = time.delta_seconds() * 8.;
+            let step = time.delta_secs() * 8.;
 
             if dist > step {
                 transform.translation += step * diff.normalize();
@@ -364,11 +357,10 @@ fn laser_sound(
 ) {
     for ammo in query.iter() {
         if ammo.current == 0 {
-            commands.spawn(AudioBundle {
-                source: game_audio.powerdown.clone(),
-                settings: PlaybackSettings::DESPAWN
-                    .with_volume(Volume::new(**audio_setting as f32 / 100.)),
-            });
+            commands.spawn((
+                AudioPlayer(game_audio.powerdown.clone()),
+                PlaybackSettings::DESPAWN.with_volume(Volume::new(**audio_setting as f32 / 100.)),
+            ));
         }
     }
 }

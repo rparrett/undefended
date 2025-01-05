@@ -30,12 +30,15 @@ enum GameOverButton {
 }
 
 fn spawn(mut commands: Commands, fonts: Res<Fonts>, won: Res<Won>) {
-    let title_text_style = TextStyle {
-        font: fonts.main.clone(),
-        font_size: 60.0,
-        color: TITLE_TEXT.into(),
-    };
-    let button_style = Style {
+    let title_text_style = (
+        TextFont {
+            font: fonts.main.clone(),
+            font_size: 50.0,
+            ..default()
+        },
+        TextColor(TITLE_TEXT.into()),
+    );
+    let button_node = Node {
         width: Val::Px(250.0),
         height: Val::Px(45.0),
         margin: UiRect::all(Val::Px(5.0)),
@@ -43,23 +46,23 @@ fn spawn(mut commands: Commands, fonts: Res<Fonts>, won: Res<Won>) {
         align_items: AlignItems::Center,
         ..default()
     };
-    let button_text_style = TextStyle {
-        font: fonts.main.clone(),
-        font_size: 30.0,
-        color: BUTTON_TEXT.into(),
-    };
+    let button_text_style = (
+        TextFont {
+            font: fonts.main.clone(),
+            font_size: 25.0,
+            ..default()
+        },
+        TextColor(BUTTON_TEXT.into()),
+    );
 
     let root = commands
         .spawn((
-            NodeBundle {
-                style: Style {
-                    position_type: PositionType::Absolute,
-                    top: Val::Px(0.),
-                    left: Val::Px(0.),
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
-                    ..default()
-                },
+            Node {
+                position_type: PositionType::Absolute,
+                top: Val::Px(0.),
+                left: Val::Px(0.),
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
                 ..default()
             },
             GameOverMarker,
@@ -67,59 +70,51 @@ fn spawn(mut commands: Commands, fonts: Res<Fonts>, won: Res<Won>) {
         .id();
 
     let container = commands
-        .spawn(NodeBundle {
-            style: Style {
+        .spawn((
+            Node {
                 margin: UiRect::all(Val::Auto),
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
                 padding: UiRect::all(Val::Px(20.)),
                 ..default()
             },
-            background_color: CONTAINER_BACKGROUND.into(),
-            ..default()
-        })
+            BackgroundColor(CONTAINER_BACKGROUND.into()),
+        ))
         .id();
 
     let title = commands
-        .spawn(
-            TextBundle::from_section(
-                if won.0 { "YOU WIN!" } else { "GAME OVER!" },
-                title_text_style,
-            )
-            .with_style(Style {
+        .spawn((
+            Text::new(if won.0 { "YOU WIN!" } else { "GAME OVER!" }),
+            title_text_style,
+            Node {
                 margin: UiRect {
                     bottom: Val::Px(10.0),
                     ..default()
                 },
                 ..default()
-            }),
-        )
+            },
+        ))
         .id();
 
     let play_again = commands
         .spawn((
-            ButtonBundle {
-                style: button_style,
-                background_color: NORMAL_BUTTON.into(),
-                ..default()
-            },
+            Button,
+            button_node,
+            BackgroundColor(NORMAL_BUTTON.into()),
             Focusable::default(),
             GameOverButton::PlayAgain,
             PlayAgainButton,
         ))
         .with_children(|parent| {
-            parent.spawn(TextBundle::from_section(
-                "PLAY AGAIN",
-                button_text_style.clone(),
-            ));
+            parent.spawn((Text::new("PLAY AGAIN"), button_text_style.clone()));
         })
         .id();
 
-    commands.entity(root).push_children(&[container]);
+    commands.entity(root).add_children(&[container]);
 
     commands
         .entity(container)
-        .push_children(&[title, play_again]);
+        .add_children(&[title, play_again]);
 }
 
 fn button_actions(

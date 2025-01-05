@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 use bevy_mod_outline::{
-    AsyncSceneInheritOutlinePlugin, AutoGenerateOutlineNormalsPlugin,
-    OutlinePlugin as ActualOutlinePlugin, OutlineVolume,
+    AutoGenerateOutlineNormalsPlugin, OutlinePlugin as ActualOutlinePlugin, OutlineVolume,
 };
 
 use crate::{
@@ -14,8 +13,7 @@ pub struct OutlinePlugin;
 impl Plugin for OutlinePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(ActualOutlinePlugin)
-            .add_plugins(AutoGenerateOutlineNormalsPlugin)
-            .add_plugins(AsyncSceneInheritOutlinePlugin)
+            .add_plugins(AutoGenerateOutlineNormalsPlugin::default())
             .add_systems(Update, update);
     }
 }

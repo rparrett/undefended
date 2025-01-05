@@ -8,7 +8,7 @@ use crate::{
     settings::DifficultySetting,
     tower::Ammo,
     waves::{WaveState, Waves},
-    GameState, Lives, MainCamera,
+    DespawnOnReset, GameState, Lives, MainCamera,
 };
 
 pub const FOCUSED_BUTTON: Srgba = Srgba::rgb(0.25, 0.0, 0.25);
@@ -77,156 +77,85 @@ impl Plugin for UiPlugin {
 }
 
 fn setup(mut commands: Commands, fonts: Res<Fonts>) {
-    let text_style = TextStyle {
-        font: fonts.main.clone(),
-        font_size: 20.,
-        color: UI_TEXT.into(),
-    };
-    let text_style_alt = TextStyle {
-        font: fonts.main.clone(),
-        font_size: 20.,
-        color: ALT_TEXT.into(),
-    };
+    let text_style = (
+        TextFont {
+            font: fonts.main.clone(),
+            font_size: 16.,
+            ..default()
+        },
+        TextColor(UI_TEXT.into()),
+    );
+    let text_style_alt = (
+        TextFont {
+            font: fonts.main.clone(),
+            font_size: 16.,
+            ..default()
+        },
+        TextColor(ALT_TEXT.into()),
+    );
 
     commands
         .spawn((
             Name::new("WaveInfoContainer"),
-            NodeBundle {
-                style: Style {
-                    flex_direction: FlexDirection::Column,
-                    width: Val::Px(165.),
-                    position_type: PositionType::Absolute,
-                    top: Val::Px(0.0),
-                    right: Val::Px(0.0),
-                    padding: UiRect::all(Val::Px(5.)),
-                    ..default()
-                },
-                background_color: OVERLAY.into(),
+            Node {
+                flex_direction: FlexDirection::Column,
+                width: Val::Px(165.),
+                position_type: PositionType::Absolute,
+                top: Val::Px(0.0),
+                right: Val::Px(0.0),
+                padding: UiRect::all(Val::Px(5.)),
                 ..default()
             },
+            BackgroundColor(OVERLAY.into()),
+            DespawnOnReset,
         ))
         .with_children(|parent| {
             parent
                 .spawn((
                     Name::new("WaveNumberContainer"),
-                    NodeBundle {
-                        style: Style {
-                            justify_content: JustifyContent::SpaceBetween,
-                            ..default()
-                        },
+                    Node {
+                        justify_content: JustifyContent::SpaceBetween,
                         ..default()
                     },
                 ))
                 .with_children(|parent| {
-                    parent.spawn(TextBundle {
-                        text: Text::from_sections([TextSection {
-                            value: "WAVE:".to_string(),
-                            style: text_style.clone(),
-                        }]),
-                        ..default()
-                    });
-                    parent.spawn((
-                        WaveText,
-                        TextBundle {
-                            text: Text::from_sections([
-                                TextSection {
-                                    value: "?".to_string(),
-                                    style: text_style_alt.clone(),
-                                },
-                                TextSection {
-                                    value: "/".to_string(),
-                                    style: text_style.clone(),
-                                },
-                                TextSection {
-                                    value: "?".to_string(),
-                                    style: text_style.clone(),
-                                },
-                            ]),
-                            ..default()
-                        },
-                    ));
+                    parent.spawn((Text::new("WAVE:"), text_style.clone()));
+                    parent
+                        .spawn((WaveText, Text::new("?"), text_style_alt.clone()))
+                        .with_child((TextSpan::new("/"), text_style.clone()))
+                        .with_child((TextSpan::new("?"), text_style.clone()));
                 });
 
             parent
                 .spawn((
                     Name::new("WaveTimerContainer"),
-                    NodeBundle {
-                        style: Style {
-                            justify_content: JustifyContent::SpaceBetween,
-                            ..default()
-                        },
+                    Node {
+                        justify_content: JustifyContent::SpaceBetween,
                         ..default()
                     },
                 ))
                 .with_children(|parent| {
-                    parent.spawn(TextBundle {
-                        text: Text::from_sections([TextSection {
-                            value: "TIME:".to_string(),
-                            style: text_style.clone(),
-                        }]),
-                        ..default()
-                    });
-                    parent.spawn((
-                        WaveTimerText,
-                        TextBundle {
-                            text: Text::from_sections([
-                                TextSection {
-                                    value: "--".to_string(),
-                                    style: text_style_alt.clone(),
-                                },
-                                TextSection {
-                                    value: "s".to_string(),
-                                    style: text_style.clone(),
-                                },
-                            ]),
-                            ..default()
-                        },
-                    ));
+                    parent.spawn((Text::new("TIME:"), text_style.clone()));
+                    parent
+                        .spawn((WaveTimerText, Text::new("--"), text_style_alt.clone()))
+                        .with_child((TextSpan::new("s"), text_style.clone()));
                 });
 
             parent
                 .spawn((
                     Name::new("WaveStatsContainer"),
-                    NodeBundle {
-                        style: Style {
-                            justify_content: JustifyContent::SpaceBetween,
-                            ..default()
-                        },
+                    Node {
+                        justify_content: JustifyContent::SpaceBetween,
                         ..default()
                     },
                 ))
                 .with_children(|parent| {
-                    parent.spawn(TextBundle {
-                        text: Text::from_sections([TextSection {
-                            value: "STATS:".to_string(),
-                            style: text_style.clone(),
-                        }]),
-                        ..default()
-                    });
-                    parent.spawn((
-                        WaveStatsText,
-                        TextBundle {
-                            text: Text::from_sections([
-                                TextSection {
-                                    value: "?".to_string(),
-                                    style: text_style_alt.clone(),
-                                },
-                                TextSection {
-                                    value: "x ".to_string(),
-                                    style: text_style.clone(),
-                                },
-                                TextSection {
-                                    value: "?".to_string(),
-                                    style: text_style_alt.clone(),
-                                },
-                                TextSection {
-                                    value: "HP".to_string(),
-                                    style: text_style.clone(),
-                                },
-                            ]),
-                            ..default()
-                        },
-                    ));
+                    parent.spawn((Text::new("STATS:"), text_style.clone()));
+                    parent
+                        .spawn((WaveStatsText, Text::new("?"), text_style_alt.clone()))
+                        .with_child((TextSpan::new("x "), text_style.clone()))
+                        .with_child((TextSpan::new("?"), text_style_alt.clone()))
+                        .with_child((TextSpan::new("HP"), text_style.clone()));
                 });
         });
 }
@@ -236,32 +165,32 @@ fn setup_lives(mut commands: Commands, lives: Res<Lives>, images: Res<Images>) {
         .spawn((
             LivesContainer,
             Name::new("LivesContainer"),
-            NodeBundle {
-                style: Style {
-                    position_type: PositionType::Absolute,
-                    top: Val::Px(0.0),
-                    left: Val::Px(0.0),
-                    padding: UiRect::all(Val::Px(5.)),
-                    ..default()
-                },
-                background_color: OVERLAY.into(),
+            Node {
+                position_type: PositionType::Absolute,
+                top: Val::Px(0.0),
+                left: Val::Px(0.0),
+                padding: UiRect::all(Val::Px(5.)),
                 ..default()
             },
+            BackgroundColor(OVERLAY.into()),
+            DespawnOnReset,
         ))
         .with_children(|parent| {
             for i in 0..lives.0 {
                 let padding = if i + 1 == lives.0 { 0.0 } else { 5.0 };
 
-                parent.spawn(ImageBundle {
-                    image: images.heart.clone().into(),
-                    style: Style {
+                parent.spawn((
+                    ImageNode {
+                        image: images.heart.clone(),
+                        ..default()
+                    },
+                    Node {
                         margin: UiRect::right(Val::Px(padding)),
                         max_width: Val::Px(20.0),
                         max_height: Val::Px(20.0),
                         ..default()
                     },
-                    ..default()
-                });
+                ));
             }
         });
 }
@@ -269,7 +198,7 @@ fn setup_lives(mut commands: Commands, lives: Res<Lives>, images: Res<Images>) {
 fn update_lives(
     lives: Res<Lives>,
     container_query: Query<&Children, With<LivesContainer>>,
-    mut image_query: Query<&mut Style>,
+    mut image_query: Query<&mut Node>,
 ) {
     if !lives.is_changed() {
         return;
@@ -278,8 +207,8 @@ fn update_lives(
     for children in container_query.iter() {
         let mut i = 0;
         for child in children {
-            if let Ok(mut style) = image_query.get_mut(*child) {
-                style.display = if i + 1 > lives.0 {
+            if let Ok(mut node) = image_query.get_mut(*child) {
+                node.display = if i + 1 > lives.0 {
                     Display::None
                 } else {
                     Display::Flex
@@ -329,51 +258,49 @@ fn spawn_ammo(
         commands
             .spawn((
                 Name::new("AmmoDisplay"),
-                NodeBundle {
-                    style: Style {
-                        position_type: PositionType::Absolute,
-                        width: Val::Px(100.),
-                        height: Val::Px(20.),
-                        justify_content: JustifyContent::Center,
-                        ..default()
-                    },
-                    z_index: ZIndex::Global(-1),
+                Node {
+                    position_type: PositionType::Absolute,
+                    width: Val::Px(100.),
+                    height: Val::Px(20.),
+                    justify_content: JustifyContent::Center,
                     ..default()
                 },
+                GlobalZIndex(-1),
+                // TODO Look into disabling UI rounding for these with Bevy 0.16.
                 FollowInWorld(entity),
+                DespawnOnReset,
             ))
             .with_children(|parent| {
                 parent.spawn((
                     AmmoText(entity),
-                    TextBundle {
-                        text: Text::from_section(
-                            format!("{}/{}", ammo.current, ammo.max),
-                            TextStyle {
-                                font: fonts.main.clone(),
-                                font_size: 20.,
-                                color: AMMO.into(),
-                            },
-                        ),
+                    Text::new(format!("{}/{}", ammo.current, ammo.max)),
+                    TextFont {
+                        font: fonts.main.clone(),
+                        font_size: 16.,
                         ..default()
                     },
+                    TextColor(AMMO.into()),
                 ));
             });
     }
 }
 
-fn update_ammo(mut query: Query<(&mut Text, &AmmoText)>, ammo_query: Query<&Ammo, Changed<Ammo>>) {
-    for (mut text, entity) in query.iter_mut() {
+fn update_ammo(
+    mut query: Query<(&mut Text, &mut TextColor, &AmmoText)>,
+    ammo_query: Query<&Ammo, Changed<Ammo>>,
+) {
+    for (mut text, mut text_color, entity) in query.iter_mut() {
         let Ok(ammo) = ammo_query.get(entity.0) else {
             continue;
         };
 
         if ammo.current == 0 {
-            text.sections[0].style.color = AMMO_EMPTY.into();
+            text_color.0 = AMMO_EMPTY.into();
         } else {
-            text.sections[0].style.color = AMMO.into();
+            text_color.0 = AMMO.into();
         }
 
-        text.sections[0].value = format!("{}/{}", ammo.current, ammo.max);
+        text.0 = format!("{}/{}", ammo.current, ammo.max);
     }
 }
 
@@ -386,33 +313,27 @@ fn spawn_item_spawners(
         commands
             .spawn((
                 Name::new("ItemSpawnerDisplay"),
-                NodeBundle {
-                    style: Style {
-                        position_type: PositionType::Absolute,
-                        width: Val::Px(100.),
-                        height: Val::Px(20.),
-                        justify_content: JustifyContent::Center,
-                        ..default()
-                    },
-                    z_index: ZIndex::Global(-1),
+                Node {
+                    position_type: PositionType::Absolute,
+                    width: Val::Px(100.),
+                    height: Val::Px(20.),
+                    justify_content: JustifyContent::Center,
                     ..default()
                 },
+                GlobalZIndex(-1),
                 FollowInWorld(entity),
+                DespawnOnReset,
             ))
             .with_children(|parent| {
                 parent.spawn((
                     ItemSpawnerText(entity),
-                    TextBundle {
-                        text: Text::from_section(
-                            "?".to_string(),
-                            TextStyle {
-                                font: fonts.main.clone(),
-                                font_size: 20.,
-                                color: SPAWNER_TIMER.into(),
-                            },
-                        ),
+                    Text::new("?"),
+                    TextFont {
+                        font: fonts.main.clone(),
+                        font_size: 16.,
                         ..default()
                     },
+                    TextColor(SPAWNER_TIMER.into()),
                 ));
             });
     }
@@ -428,19 +349,19 @@ fn update_item_spawners(
         };
 
         if item_spawner.timer.remaining() == Duration::ZERO && item_spawner.spawned == 1 {
-            text.sections[0].value = format!("{}", item_spawner.item);
+            text.0 = format!("{}", item_spawner.item);
             *visibility = Visibility::Inherited;
         } else if item_spawner.timer.remaining() == Duration::ZERO {
             *visibility = Visibility::Hidden;
         } else {
-            text.sections[0].value = format!("0:{:0>2.0}", item_spawner.timer.remaining_secs());
+            text.0 = format!("0:{:0>2.0}", item_spawner.timer.remaining_secs());
             *visibility = Visibility::Inherited;
         }
     }
 }
 
 fn follow(
-    mut query: Query<(&mut Style, &FollowInWorld)>,
+    mut query: Query<(&mut Node, &FollowInWorld)>,
     world_query: Query<&GlobalTransform>,
     camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
 ) {
@@ -448,63 +369,65 @@ fn follow(
         return;
     };
 
-    for (mut style, follow) in query.iter_mut() {
+    for (mut node, follow) in query.iter_mut() {
         let Ok(world) = world_query.get(follow.0) else {
             continue;
         };
 
-        let Some(viewport) =
+        let Ok(viewport) =
             camera.world_to_viewport(camera_transform, world.translation() + Vec3::Y * 2.0)
         else {
             continue;
         };
 
-        let width = match style.width {
+        let width = match node.width {
             Val::Px(px) => px,
             _ => continue,
         };
 
-        style.left = Val::Px((viewport.x - width / 2.).round());
-        style.top = Val::Px(viewport.y);
+        node.left = Val::Px((viewport.x - width / 2.).round());
+        node.top = Val::Px(viewport.y);
     }
 }
 
-fn update_waves(mut query: Query<&mut Text, With<WaveText>>, waves: Res<Waves>) {
-    for mut text in query.iter_mut() {
+fn update_waves(query: Query<Entity, With<WaveText>>, waves: Res<Waves>, mut writer: TextUiWriter) {
+    for text in &query {
         let wave = if waves.current == waves.waves.len() {
             waves.current
         } else {
             waves.current + 1
         };
 
-        text.sections[0].value = format!("{}", wave);
-        text.sections[2].value = format!("{}", waves.waves.len());
+        *writer.text(text, 0) = format!("{}", wave);
+        *writer.text(text, 2) = format!("{}", waves.waves.len());
     }
 }
 
 fn update_wave_timer(
-    mut query: Query<&mut Text, With<WaveTimerText>>,
+    query: Query<Entity, With<WaveTimerText>>,
     wave_state: Res<WaveState>,
     waves: Res<Waves>,
+    mut writer: TextUiWriter,
 ) {
-    for mut text in query.iter_mut() {
+    for text in &query {
         if waves.current == waves.waves.len() {
-            text.sections[0].value = "--".to_string();
-            text.sections[1].value.clear();
+            *writer.text(text, 0) = "--".to_string();
+            writer.text(text, 1).clear();
         } else if wave_state.delay_timer.remaining() == Duration::ZERO {
-            text.sections[0].value = "NOW!".to_string();
-            text.sections[1].value.clear();
+            *writer.text(text, 0) = "NOW!".to_string();
+            writer.text(text, 1).clear();
         } else {
-            text.sections[0].value = format!("{:.1}", wave_state.delay_timer.remaining_secs());
-            text.sections[1].value = "s".to_string();
+            *writer.text(text, 0) = format!("{:.1}", wave_state.delay_timer.remaining_secs());
+            *writer.text(text, 1) = "s".to_string();
         };
     }
 }
 
 fn update_wave_stats(
-    mut query: Query<&mut Text, With<WaveStatsText>>,
+    query: Query<Entity, With<WaveStatsText>>,
     waves: Res<Waves>,
     difficulty: Res<DifficultySetting>,
+    mut writer: TextUiWriter,
 ) {
     let Some(current) = waves.current() else {
         return;
@@ -516,8 +439,8 @@ fn update_wave_stats(
         DifficultySetting::Extra => 2,
     };
 
-    for mut text in query.iter_mut() {
-        text.sections[0].value = format!("{}", current.num);
-        text.sections[2].value = format!("{}", current.hp + extra_hp);
+    for text in &query {
+        *writer.text(text, 0) = format!("{}", current.num);
+        *writer.text(text, 2) = format!("{}", current.hp + extra_hp);
     }
 }

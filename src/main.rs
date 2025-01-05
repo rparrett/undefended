@@ -52,6 +52,7 @@ struct Player;
 
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
 enum Action {
+    #[actionlike(DualAxis)]
     Run,
     Jump,
     Grab,
@@ -113,7 +114,7 @@ struct SpawnPlayerEvent(UVec2);
 struct Won(bool);
 
 #[derive(Component)]
-struct Persist;
+struct DespawnOnReset;
 
 const CAMERA_OFFSET: Vec3 = Vec3::new(0., 10., 6.);
 
@@ -252,21 +253,21 @@ fn setup(mut commands: Commands, mut spawn_player_events: EventWriter<SpawnPlaye
     spawn_player_events.send(SpawnPlayerEvent(START_TILE));
 
     // light
-    commands.spawn(DirectionalLightBundle {
-        directional_light: DirectionalLight {
+    commands.spawn((
+        DirectionalLight {
             illuminance: 2500.0,
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_rotation(Quat::from_euler(EulerRot::YXZ, -1.0, -1.0, -1.0)),
-        cascade_shadow_config: CascadeShadowConfigBuilder {
+        Transform::from_rotation(Quat::from_euler(EulerRot::YXZ, -1.0, -1.0, -1.0)),
+        CascadeShadowConfigBuilder {
             first_cascade_far_bound: 4.0,
             maximum_distance: 30.0,
             ..default()
         }
-        .into(),
-        ..default()
-    });
+        .build(),
+        DespawnOnReset,
+    ));
 }
 
 fn setup_camera(mut commands: Commands) {
@@ -279,15 +280,12 @@ fn setup_camera(mut commands: Commands) {
             .with(Smooth::new_position(0.25))
             .with(LookAt::new(Vec3::ZERO + Vec3::Y).tracking_smoothness(0.25))
             .build(),
-        Camera3dBundle {
-            transform: Transform::from_translation(CAMERA_OFFSET).looking_at(Vec3::ZERO, Vec3::Y),
-            camera: Camera {
-                clear_color: ClearColorConfig::None,
-                ..default()
-            },
+        Camera3d::default(),
+        Camera {
+            clear_color: ClearColorConfig::None,
             ..default()
         },
-        Persist,
+        Transform::from_translation(CAMERA_OFFSET).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 }
 
@@ -299,17 +297,10 @@ fn apply_controls(
         return;
     };
 
-    let mut direction = Vec3::ZERO;
-    let mut turn_in_place = false;
+    let axis_pair = action_state.clamped_axis_pair(&Action::Run);
 
-    if action_state.pressed(&Action::Run) {
-        let axis_pair = action_state.clamped_axis_pair(&Action::Run).unwrap();
-
-        let vec = Vec3::new(axis_pair.x(), 0., -axis_pair.y());
-        turn_in_place = vec.x.abs() < 0.3 && vec.z.abs() < 0.3;
-
-        direction += vec;
-    }
+    let direction = Vec3::new(axis_pair.x, 0., -axis_pair.y);
+    let turn_in_place = direction.x.abs() < 0.3 && direction.z.abs() < 0.3;
 
     let normalized = direction.normalize_or_zero();
     let with_speed = normalized * 4.3;
@@ -323,7 +314,7 @@ fn apply_controls(
             } else {
                 with_speed
             },
-            desired_forward: normalized,
+            desired_forward: direction.try_normalize().map(Dir3::new_unchecked),
             float_height: 1.0,
             cling_distance: 0.5,
             acceleration: 50.0,
@@ -481,10 +472,8 @@ fn spawn_player(
             .spawn((
                 Player,
                 Name::new("Player"),
-                SpatialBundle {
-                    transform: Transform::from_translation(map_to_world(event.0) + Vec3::Y * 0.5),
-                    ..default()
-                },
+                Transform::from_translation(map_to_world(event.0) + Vec3::Y * 0.5),
+                Visibility::default(),
                 RigidBody::Dynamic,
                 Velocity::default(),
                 Collider::capsule_y(0.30, 0.5),
@@ -497,49 +486,32 @@ fn spawn_player(
                 InputManagerBundle::<Action> {
                     action_state: ActionState::default(),
                     input_map: InputMap::default()
-                        .insert(Action::Jump, KeyCode::Space)
-                        .insert(Action::Jump, GamepadButtonType::South)
-                        .insert(Action::Grab, KeyCode::KeyR)
-                        .insert(Action::Grab, GamepadButtonType::West)
-                        .insert(Action::Run, DualAxis::left_stick())
-                        .insert(
-                            Action::Run,
-                            VirtualDPad {
-                                up: KeyCode::KeyW.into(),
-                                down: KeyCode::KeyS.into(),
-                                left: KeyCode::KeyA.into(),
-                                right: KeyCode::KeyD.into(),
-                            },
-                        )
-                        .insert(
-                            Action::Run,
-                            VirtualDPad {
-                                up: KeyCode::ArrowUp.into(),
-                                down: KeyCode::ArrowDown.into(),
-                                left: KeyCode::ArrowLeft.into(),
-                                right: KeyCode::ArrowRight.into(),
-                            },
-                        )
-                        .build(),
+                        .with(Action::Jump, KeyCode::Space)
+                        .with(Action::Jump, GamepadButton::South)
+                        .with(Action::Grab, KeyCode::KeyR)
+                        .with(Action::Grab, GamepadButton::West)
+                        .with_dual_axis(Action::Run, GamepadStick::LEFT)
+                        .with_dual_axis(Action::Run, VirtualDPad::wasd())
+                        .with_dual_axis(Action::Run, VirtualDPad::arrow_keys()),
                 },
+                DespawnOnReset,
             ))
             .insert((
                 TnuaRapier3dIOBundle::default(),
-                TnuaControllerBundle::default(),
+                TnuaController::default(),
                 TnuaRapier3dSensorShape(Collider::cylinder(0.0, 0.49)),
             ))
             .with_children(|parent| {
-                parent.spawn(SceneBundle {
-                    scene: models.player.clone(),
-                    transform: Transform::from_xyz(0., -0.4, 0.),
-                    ..default()
-                });
+                parent.spawn((
+                    SceneRoot(models.player.clone()),
+                    Transform::from_xyz(0., -0.4, 0.),
+                ));
 
                 // probe for current tile
                 parent.spawn((
                     TileProbe,
                     Name::new("TileProbe"),
-                    SpatialBundle::default(),
+                    Transform::default(),
                     Collider::segment(Vec3::new(0., 0., 0.), Vec3::new(0.0, -2.0, 0.)),
                     Sensor,
                     ActiveEvents::COLLISION_EVENTS,
@@ -549,7 +521,7 @@ fn spawn_player(
                 parent.spawn((
                     ItemProbe,
                     Name::new("ItemProbe"),
-                    SpatialBundle::default(),
+                    Transform::default(),
                     Collider::segment(Vec3::new(0., -0.25, 0.), Vec3::new(0.0, -0.25, -1.0)),
                     Sensor,
                     ActiveEvents::COLLISION_EVENTS,
@@ -559,7 +531,7 @@ fn spawn_player(
                 parent.spawn((
                     Cursor,
                     Name::new("Cursor"),
-                    SpatialBundle::from_transform(Transform::from_xyz(0.0, -0.9, -1.5)),
+                    Transform::from_xyz(0.0, -0.9, -1.5),
                     Collider::segment(Vec3::new(0.0, 0., 0.), Vec3::new(0.0, -2.1, 0.)),
                     Sensor,
                     ActiveEvents::COLLISION_EVENTS,
@@ -593,11 +565,10 @@ fn grab(
 
     // player is already holding an item
     if grabbed_item_query.iter_many(children).next().is_some() {
-        commands.spawn(AudioBundle {
-            source: game_audio.bad.clone(),
-            settings: PlaybackSettings::DESPAWN
-                .with_volume(Volume::new(**audio_setting as f32 / 100.)),
-        });
+        commands.spawn((
+            AudioPlayer(game_audio.bad.clone()),
+            PlaybackSettings::DESPAWN.with_volume(Volume::new(**audio_setting as f32 / 100.)),
+        ));
 
         return;
     }
@@ -635,21 +606,19 @@ fn build_tower(
     }
 
     let Some(selected_tile) = selected_tile.0 else {
-        commands.spawn(AudioBundle {
-            source: game_audio.bad.clone(),
-            settings: PlaybackSettings::DESPAWN
-                .with_volume(Volume::new(**audio_setting as f32 / 100.)),
-        });
+        commands.spawn((
+            AudioPlayer(game_audio.bad.clone()),
+            PlaybackSettings::DESPAWN.with_volume(Volume::new(**audio_setting as f32 / 100.)),
+        ));
         return;
     };
 
     let invalid = invalid_tile_query.get(selected_tile).is_ok();
     if invalid {
-        commands.spawn(AudioBundle {
-            source: game_audio.bad.clone(),
-            settings: PlaybackSettings::DESPAWN
-                .with_volume(Volume::new(**audio_setting as f32 / 100.)),
-        });
+        commands.spawn((
+            AudioPlayer(game_audio.bad.clone()),
+            PlaybackSettings::DESPAWN.with_volume(Volume::new(**audio_setting as f32 / 100.)),
+        ));
         return;
     }
 
@@ -684,39 +653,36 @@ fn feed_tower(
     }
 
     let Some(selected_tile) = selected_tile.0 else {
-        commands.spawn(AudioBundle {
-            source: game_audio.bad.clone(),
-            settings: PlaybackSettings::DESPAWN
-                .with_volume(Volume::new(**audio_setting as f32 / 100.)),
-        });
+        commands.spawn((
+            AudioPlayer(game_audio.bad.clone()),
+            PlaybackSettings::DESPAWN.with_volume(Volume::new(**audio_setting as f32 / 100.)),
+        ));
 
         return;
     };
 
     let Ok(placed_tower) = placed_tower_query.get(selected_tile) else {
-        commands.spawn(AudioBundle {
-            source: game_audio.bad.clone(),
-            settings: PlaybackSettings::DESPAWN
-                .with_volume(Volume::new(**audio_setting as f32 / 100.)),
-        });
+        commands.spawn((
+            AudioPlayer(game_audio.bad.clone()),
+            PlaybackSettings::DESPAWN.with_volume(Volume::new(**audio_setting as f32 / 100.)),
+        ));
         return;
     };
 
     let Ok(mut ammo) = tower_query.get_mut(placed_tower.0) else {
-        commands.spawn(AudioBundle {
-            source: game_audio.bad.clone(),
-            settings: PlaybackSettings::DESPAWN
-                .with_volume(Volume::new(**audio_setting as f32 / 100.)),
-        });
+        commands.spawn((
+            AudioPlayer(game_audio.bad.clone()),
+            PlaybackSettings::DESPAWN.with_volume(Volume::new(**audio_setting as f32 / 100.)),
+        ));
         return;
     };
 
     ammo.current = ammo.max;
 
-    commands.spawn(AudioBundle {
-        source: game_audio.feed.clone(),
-        settings: PlaybackSettings::DESPAWN.with_volume(Volume::new(**audio_setting as f32 / 100.)),
-    });
+    commands.spawn((
+        AudioPlayer(game_audio.feed.clone()),
+        PlaybackSettings::DESPAWN.with_volume(Volume::new(**audio_setting as f32 / 100.)),
+    ));
 
     commands.entity(entity).despawn_recursive();
 }
@@ -734,13 +700,9 @@ fn start_music(
     audio_assets: Res<Sounds>,
 ) {
     commands.spawn((
-        AudioBundle {
-            source: audio_assets.music.clone(),
-            settings: PlaybackSettings::LOOP
-                .with_volume(Volume::new(**music_setting as f32 / 100.)),
-        },
+        AudioPlayer(audio_assets.music.clone()),
+        PlaybackSettings::LOOP.with_volume(Volume::new(**music_setting as f32 / 100.)),
         MusicController,
-        Persist,
     ));
 }
 
@@ -763,31 +725,8 @@ fn game_over(
     }
 }
 
-fn reset(
-    mut commands: Commands,
-    roots_query: Query<
-        Entity,
-        (
-            Without<Window>,
-            Without<Persist>,
-            With<Children>,
-            Without<Parent>,
-        ),
-    >,
-    orphans_query: Query<
-        Entity,
-        (
-            Without<Window>,
-            Without<Persist>,
-            Without<Children>,
-            Without<Parent>,
-        ),
-    >,
-) {
-    for entity in roots_query.iter() {
-        commands.entity(entity).despawn_recursive();
-    }
-    for entity in orphans_query.iter() {
+fn reset(mut commands: Commands, to_despawn: Query<Entity, With<DespawnOnReset>>) {
+    for entity in to_despawn.iter() {
         commands.entity(entity).despawn_recursive();
     }
 
