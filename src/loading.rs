@@ -3,7 +3,7 @@ use bevy_asset_loader::prelude::*;
 use bevy_mod_outline::OutlineVolume;
 use bevy_pipelines_ready::{PipelinesReady, PipelinesReadyPlugin};
 
-use crate::GameState;
+use crate::{map::PathMaterial, tower::LaserMaterial, GameState};
 
 pub struct LoadingPlugin;
 
@@ -65,9 +65,9 @@ pub struct Images {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-const EXPECTED_PIPELINES: usize = 24;
+const EXPECTED_PIPELINES: usize = 30;
 #[cfg(target_arch = "wasm32")]
-const EXPECTED_PIPELINES: usize = 20;
+const EXPECTED_PIPELINES: usize = 26;
 
 impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
@@ -95,8 +95,9 @@ impl Plugin for LoadingPlugin {
 fn setup_pipelines(
     mut commands: Commands,
     models: Res<Models>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
+    laser_material: Res<LaserMaterial>,
+    path_material: Res<PathMaterial>,
 ) {
     commands.spawn((PipelinesMarker, Text::new("Loading Pipelines...")));
 
@@ -105,22 +106,22 @@ fn setup_pipelines(
 
     commands.spawn((PipelinesMarker, SceneRoot(models.player.clone())));
 
-    let path_mat = materials.add(StandardMaterial {
-        base_color: Srgba::new(1.0, 0.0, 0.0, 0.3).into(),
-        alpha_mode: AlphaMode::Blend,
-        ..default()
-    });
-
     commands.spawn((
         PipelinesMarker,
         Mesh3d(meshes.add(Mesh::from(Cuboid::new(0.25, 0.25, 0.25)))),
-        MeshMaterial3d(path_mat.clone()),
+        MeshMaterial3d(path_material.0.clone()),
         // Make sure this gets outlined so that outline pipelines are created
         OutlineVolume {
             width: 1.,
             colour: Color::WHITE,
             visible: true,
         },
+    ));
+
+    commands.spawn((
+        PipelinesMarker,
+        Mesh3d(meshes.add(Cuboid::new(0.1, 0.1, 0.1))),
+        MeshMaterial3d(laser_material.0.clone()),
     ));
 
     commands.spawn((

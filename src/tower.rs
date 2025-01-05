@@ -50,7 +50,7 @@ impl Ammo {
 }
 
 #[derive(Resource)]
-struct LaserMaterial(Handle<StandardMaterial>);
+pub struct LaserMaterial(pub Handle<StandardMaterial>);
 impl FromWorld for LaserMaterial {
     fn from_world(world: &mut World) -> Self {
         let mut materials = world.resource_mut::<Assets<StandardMaterial>>();

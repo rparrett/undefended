@@ -142,9 +142,23 @@ impl MovingFloorDirection {
     }
 }
 
+#[derive(Resource)]
+pub struct PathMaterial(pub Handle<StandardMaterial>);
+impl FromWorld for PathMaterial {
+    fn from_world(world: &mut World) -> Self {
+        let mut materials = world.resource_mut::<Assets<StandardMaterial>>();
+        Self(materials.add(StandardMaterial {
+            base_color: Srgba::new(1.0, 0.0, 0.0, 0.3).into(),
+            alpha_mode: AlphaMode::Blend,
+            ..default()
+        }))
+    }
+}
+
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Playing), spawn_map)
+        app.init_resource::<PathMaterial>()
+            .add_systems(OnEnter(GameState::Playing), spawn_map)
             // This must run before `TnuaPipelineStages::Sensors` or the player's movement
             // will not match up with the moving platform.
             .add_systems(
@@ -176,8 +190,8 @@ pub fn map_to_world(pos: UVec2) -> Vec3 {
 fn spawn_map(
     mut commands: Commands,
     models: Res<Models>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
+    path_material: Res<PathMaterial>,
 ) {
     let mut rng = thread_rng();
 
@@ -248,11 +262,6 @@ fn spawn_map(
         }
     }
 
-    let path_mat = materials.add(StandardMaterial {
-        base_color: Srgba::new(1.0, 0.0, 0.0, 0.3).into(),
-        alpha_mode: AlphaMode::Blend,
-        ..default()
-    });
     for window in PATH.windows(2) {
         let (start, end) = (window[0], window[1]);
 
@@ -276,7 +285,7 @@ fn spawn_map(
             commands.spawn((
                 Name::new("PathDot"),
                 Mesh3d(meshes.add(Cuboid::new(0.25, 0.25, 0.25))),
-                MeshMaterial3d(path_mat.clone()),
+                MeshMaterial3d(path_material.0.clone()),
                 Transform::from_translation(map_to_world(path_tile)),
                 DespawnOnReset,
             ));
